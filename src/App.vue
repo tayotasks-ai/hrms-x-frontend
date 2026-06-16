@@ -291,7 +291,8 @@ const {
   getDashboardStats, getEmployees, getMe, getLeaves, getPayslips, getKpis,
   getCompliances, getDocuments, getOnboardings, getProbations, getEmploymentHistories,
   getRequisitions, getRedeployments, getExits, getCases, getBenefits, getTickets,
-  getJobArchitecture, getPositions, getInternalJobs, getTrainingCourses, getDepartments
+  getJobArchitecture, getPositions, getInternalJobs, getTrainingCourses, getDepartments,
+  getPerformanceCycles
 } = useApi();
 
 // UI state
