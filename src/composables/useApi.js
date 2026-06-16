@@ -10,7 +10,7 @@ const isLoading  = ref(false);
 const error      = ref(null);
 
 // ── Axios instance ────────────────────────────────────────────────────────────
-const api = axios.create({ baseURL: '/api', headers: { 'Content-Type': 'application/json' } });
+const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'https://hrms-x.onrender.com/api', headers: { 'Content-Type': 'application/json' } });
 
 api.interceptors.request.use(config => {
   if (activeTenant.value?._id) config.headers['X-Tenant-ID'] = activeTenant.value._id;
