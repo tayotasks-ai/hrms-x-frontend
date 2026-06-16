@@ -1,0 +1,22 @@
+{
+  "name": "antigravity-hrms-frontend",
+  "version": "1.0.0",
+  "description": "Multi-Tenant SaaS HRMS Frontend",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "lucide-vue-next": "^0.372.0",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0-alpha.14",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "tailwindcss": "^4.0.0-alpha.14",
+    "vite": "^5.2.8"
+  }
+}
