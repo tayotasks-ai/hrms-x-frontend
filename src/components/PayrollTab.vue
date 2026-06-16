@@ -233,7 +233,7 @@
                 </div>
                 <h4 class="font-display font-bold text-zinc-900 dark:text-zinc-100 text-base uppercase tracking-wider">{{ tenantName }}</h4>
               </div>
-              <p class="text-xs text-zinc-500">Antigravity Multi-Tenant SaaS HRMS</p>
+              <p class="text-xs text-zinc-500">Multi-Tenant SaaS HRMS</p>
             </div>
             <div class="text-right">
               <h2 class="text-xl font-display font-bold text-zinc-900 dark:text-zinc-50 tracking-wide uppercase">Payslip Invoice</h2>
