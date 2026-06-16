@@ -140,7 +140,7 @@
           <!-- Allowances & Deductions Grid -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
-              <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Allowances ($)</label>
+              <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Allowances (₦)</label>
               <input 
                 v-model="form.allowances"
                 type="number"
@@ -150,7 +150,7 @@
               />
             </div>
             <div class="space-y-1">
-              <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Deductions / Taxes ($)</label>
+              <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Deductions / Taxes (₦)</label>
               <input 
                 v-model="form.deductions"
                 type="number"
@@ -425,10 +425,10 @@ const handleSubmit = async () => {
 
 // Formatting Utilities
 const formatCurrency = (val) => {
-  if (val === undefined || val === null) return '$0';
+  if (val === undefined || val === null) return '₦0';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'NGN',
     maximumFractionDigits: 0
   }).format(val);
 };

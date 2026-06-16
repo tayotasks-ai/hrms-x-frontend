@@ -27,11 +27,11 @@
           <div class="space-y-4">
             <div>
               <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5">Email</label>
-              <input v-model="loginForm.email" type="email" required placeholder="admin@company.com" class="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
+              <input v-model="loginForm.email" type="email" required placeholder="admin@company.com" class="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
             </div>
             <div>
               <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5">Password</label>
-              <input v-model="loginForm.password" type="password" required placeholder="••••••••" class="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
+              <input v-model="loginForm.password" type="password" required placeholder="••••••••" class="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
             </div>
             
             <button @click="handleLogin" :disabled="isLoading" class="w-full bg-lime-500 text-black font-bold py-3 rounded-lg text-sm hover:bg-lime-400 active:scale-[0.98] transition disabled:opacity-50 mt-2 shadow-[0_4px_14px_0_rgba(132,204,22,0.39)] hover:shadow-[0_6px_20px_rgba(132,204,22,0.23)]">
@@ -58,28 +58,28 @@
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5">Company Name</label>
-                <input v-model="signupForm.name" type="text" required placeholder="Acme Corp" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
+                <input v-model="signupForm.name" type="text" required placeholder="Acme Corp" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
               </div>
               <div>
                 <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5">Slug</label>
-                <input v-model="signupForm.slug" type="text" required placeholder="acme" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition font-mono" />
+                <input v-model="signupForm.slug" type="text" required placeholder="acme" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition font-mono" />
               </div>
             </div>
             
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5">Admin Name</label>
-                <input v-model="signupForm.adminName" type="text" required class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
+                <input v-model="signupForm.adminName" type="text" required class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
               </div>
               <div>
                 <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5">Admin Email</label>
-                <input v-model="signupForm.adminEmail" type="email" required class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
+                <input v-model="signupForm.adminEmail" type="email" required class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
               </div>
             </div>
             
             <div>
               <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5">Admin Password</label>
-              <input v-model="signupForm.adminPassword" type="password" required placeholder="••••••••" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
+              <input v-model="signupForm.adminPassword" type="password" required placeholder="••••••••" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
             </div>
 
             <button @click="handleRegister" :disabled="isLoading" class="w-full bg-lime-500 text-black font-bold py-3 rounded-lg text-sm hover:bg-lime-400 active:scale-[0.98] transition disabled:opacity-50 mt-2 shadow-[0_4px_14px_0_rgba(132,204,22,0.39)] hover:shadow-[0_6px_20px_rgba(132,204,22,0.23)]">
@@ -112,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useApi } from '../composables/useApi';
 import { AlertCircle, X } from 'lucide-vue-next';
 
@@ -124,6 +124,14 @@ const isLogin = ref(true);
 
 const loginForm = ref({ email: '', password: '' });
 const signupForm = ref({ name: '', slug: '', adminName: '', adminEmail: '', adminPassword: '' });
+
+watch(() => signupForm.value.name, (newName) => {
+  if (newName) {
+    signupForm.value.slug = newName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  } else {
+    signupForm.value.slug = '';
+  }
+});
 
 const handleLogin = async () => {
   try {

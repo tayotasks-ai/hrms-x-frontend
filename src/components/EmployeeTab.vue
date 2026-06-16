@@ -156,7 +156,7 @@
 
           <!-- Salary -->
           <div class="space-y-1">
-            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Monthly Salary (USD)</label>
+            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Monthly Salary (₦)</label>
             <input 
               v-model="form.salary"
               type="number" 
@@ -362,7 +362,7 @@ const handleSubmit = async () => {
 const formatCurrency = (val) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'NGN',
     maximumFractionDigits: 0
   }).format(val);
 };

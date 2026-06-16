@@ -159,10 +159,10 @@ defineProps({
 
 // Utility to format currency nicely
 const formatCurrency = (value) => {
-  if (value === undefined || value === null) return '$0';
+  if (value === undefined || value === null) return '₦0';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'NGN',
     maximumFractionDigits: 0
   }).format(value);
 };
