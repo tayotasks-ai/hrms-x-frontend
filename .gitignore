@@ -1,2 +1,4 @@
 node_modules/
 .git
+vite.config.js.timestamp-*.mjs
+.env.local

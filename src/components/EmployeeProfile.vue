@@ -45,7 +45,6 @@
           {{ successMsg }}
         </div>
 
-        <!-- 0. Employment -->
         <div class="space-y-4">
           <h4 class="text-xs font-mono font-bold text-zinc-500 uppercase tracking-widest border-b border-zinc-200 dark:border-zinc-800 pb-2">Employment</h4>
           <div class="grid grid-cols-2 gap-4">
@@ -55,26 +54,42 @@
             </div>
             <div class="space-y-1">
               <label class="text-[10px] uppercase tracking-wider text-zinc-500">Role / Job Title</label>
-              <input v-model="form.role" type="text" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition" />
+              <!-- HR only: editable -->
+              <input v-if="!isEmployee" v-model="form.role" type="text" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition" />
+              <!-- Employee: read-only -->
+              <p v-else class="w-full px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-sm text-zinc-500 dark:text-zinc-400 font-mono cursor-not-allowed">{{ form.role || '—' }}</p>
             </div>
             <div class="space-y-1">
               <label class="text-[10px] uppercase tracking-wider text-zinc-500">Department</label>
-              <select v-model="form.departmentId" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition">
+              <!-- HR only: editable -->
+              <select v-if="!isEmployee" v-model="form.departmentId" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition">
                 <option value="" disabled>Select Department</option>
                 <option v-for="dept in departments" :key="dept._id" :value="dept._id">{{ dept.name }}</option>
               </select>
+              <!-- Employee: read-only -->
+              <p v-else class="w-full px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-sm text-zinc-500 dark:text-zinc-400 cursor-not-allowed">
+                {{ employee.departmentId?.name || employee.department || '—' }}
+              </p>
             </div>
             <div class="space-y-1">
               <label class="text-[10px] uppercase tracking-wider text-zinc-500">Monthly Salary (₦)</label>
-              <input v-model="form.salary" type="number" min="0" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
+              <!-- HR only: editable -->
+              <input v-if="!isEmployee" v-model="form.salary" type="number" min="0" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
+              <!-- Employee: read-only (shows their salary but can't change it) -->
+              <p v-else class="w-full px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-sm text-zinc-500 dark:text-zinc-400 font-mono cursor-not-allowed">
+                {{ form.salary ? '₦' + Number(form.salary).toLocaleString() : '—' }}
+              </p>
             </div>
             <div class="space-y-1">
               <label class="text-[10px] uppercase tracking-wider text-zinc-500">Status</label>
-              <select v-model="form.status" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition">
+              <!-- HR only: editable -->
+              <select v-if="!isEmployee" v-model="form.status" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition">
                 <option value="Active">Active</option>
                 <option value="Onboarding">Onboarding</option>
                 <option value="Offboarded">Offboarded</option>
               </select>
+              <!-- Employee: read-only -->
+              <p v-else class="w-full px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-sm text-zinc-500 dark:text-zinc-400 cursor-not-allowed">{{ form.status || '—' }}</p>
             </div>
           </div>
         </div>
@@ -179,41 +194,50 @@
           Not yet verified. Select a bank, enter the account number, and verify to enable payroll payouts to this account.
         </div>
 
-        <div v-if="banksError" class="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400 rounded text-xs">
+        <!-- Paystack not connected — show a soft info note, not an error -->
+        <div v-if="paystackNotConnected" class="p-2.5 bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded text-xs">
+          Bank verification requires Paystack to be connected. An HR admin can enable this under <strong>Payment Settings</strong>.
+        </div>
+
+        <!-- Unexpected load error (network failure etc.) -->
+        <div v-else-if="banksError" class="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400 rounded text-xs">
           {{ banksError }}
         </div>
 
-        <div v-if="verifyError" class="p-2.5 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
-          {{ verifyError }}
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div class="space-y-1">
-            <label class="text-[10px] uppercase tracking-wider text-zinc-500">Bank</label>
-            <select
-              v-model="bankForm.bankCode"
-              :disabled="banksLoading || banks.length === 0"
-              class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition disabled:opacity-50"
-            >
-              <option value="" disabled>{{ banksLoading ? 'Loading banks…' : 'Select Bank' }}</option>
-              <option v-for="bank in banks" :key="bank.code" :value="bank.code">{{ bank.name }}</option>
-            </select>
+        <!-- Bank entry form — only rendered when banks are available -->
+        <template v-else>
+          <div v-if="verifyError" class="p-2.5 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
+            {{ verifyError }}
           </div>
-          <div class="space-y-1">
-            <label class="text-[10px] uppercase tracking-wider text-zinc-500">Account Number</label>
-            <input v-model="bankForm.accountNumber" type="text" maxlength="10" placeholder="0123456789" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
-          </div>
-        </div>
 
-        <button
-          type="button"
-          @click="verifyAccount"
-          :disabled="verifying || !bankForm.bankCode || !bankForm.accountNumber"
-          class="flex items-center gap-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold px-4 py-2 rounded text-xs hover:opacity-90 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <ShieldCheck class="w-3.5 h-3.5" />
-          <span>{{ verifying ? 'Verifying…' : 'Verify Account' }}</span>
-        </button>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-wider text-zinc-500">Bank</label>
+              <select
+                v-model="bankForm.bankCode"
+                :disabled="banksLoading || banks.length === 0"
+                class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition disabled:opacity-50"
+              >
+                <option value="" disabled>{{ banksLoading ? 'Loading banks…' : 'Select Bank' }}</option>
+                <option v-for="bank in banks" :key="bank.code" :value="bank.code">{{ bank.name }}</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-wider text-zinc-500">Account Number</label>
+              <input v-model="bankForm.accountNumber" type="text" maxlength="10" placeholder="0123456789" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            @click="verifyAccount"
+            :disabled="verifying || !bankForm.bankCode || !bankForm.accountNumber"
+            class="flex items-center gap-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold px-4 py-2 rounded text-xs hover:opacity-90 active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <ShieldCheck class="w-3.5 h-3.5" />
+            <span>{{ verifying ? 'Verifying…' : 'Verify Account' }}</span>
+          </button>
+        </template>
       </div>
     </div>
 
@@ -234,7 +258,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useApi } from '../composables/useApi';
 import { ArrowLeft, Save, BadgeCheck, ShieldCheck } from 'lucide-vue-next';
 
@@ -246,8 +270,16 @@ const props = defineProps({
   departments: {
     type: Array,
     default: () => []
+  },
+  authUser: {
+    type: Object,
+    default: null
   }
 });
+
+// Employees cannot edit HR-controlled fields (salary, role, department, status).
+// The backend already enforces this, but we also lock the UI for clarity.
+const isEmployee = computed(() => props.authUser?.role === 'Employee');
 
 const emit = defineEmits(['close', 'updated']);
 const { updateEmployee, getBanks, verifyBankAccount } = useApi();
@@ -259,18 +291,30 @@ const successMsg = ref(null);
 // ── Bank details / payroll payment verification ─────────────────────────────
 const banks = ref([]);
 const banksLoading = ref(false);
-const banksError = ref(null);
+const banksError = ref(null);          // unexpected errors only
+const paystackNotConnected = ref(false); // expected: Paystack not set up yet
 const verifying = ref(false);
 const verifyError = ref(null);
 const bankForm = ref({ bankCode: '', accountNumber: '' });
 
+// Known phrase from the backend when Paystack isn't configured for the tenant.
+const PAYSTACK_NOT_CONNECTED_MSG = 'Paystack is not connected for this company yet';
+
 const loadBanks = async () => {
   banksLoading.value = true;
   banksError.value = null;
+  paystackNotConnected.value = false;
   try {
     banks.value = await getBanks();
   } catch (err) {
-    banksError.value = err.response?.data?.message || 'Could not load bank list — Paystack may not be connected yet for this company.';
+    const msg = err.response?.data?.message || err.message || '';
+    if (msg.includes(PAYSTACK_NOT_CONNECTED_MSG)) {
+      // Expected state — not an error, Paystack just hasn't been configured yet.
+      paystackNotConnected.value = true;
+    } else {
+      // Genuine unexpected failure (network down, server error, etc.)
+      banksError.value = msg || 'Could not load bank list. Please try again later.';
+    }
   } finally {
     banksLoading.value = false;
   }

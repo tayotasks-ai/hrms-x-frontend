@@ -287,7 +287,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useApi } from './composables/useApi';
 import { AlertCircle, Sun, Moon } from 'lucide-vue-next';
 
@@ -492,6 +492,28 @@ watch(activeTenant, () => {
   if (activeTenant.value && authUser.value) loadAllData();
 });
 
+// ── Browser History integration (back/forward button support) ─────────────
+// When the active tab changes, push a history entry so the browser back button
+// steps back through tabs instead of leaving the app entirely.
+watch(activeTab, (tab) => {
+  // Only push history when we're in the app (not on the landing page)
+  if (!showLanding.value) {
+    window.history.pushState({ tab }, '', `#${tab}`);
+  }
+});
+
+const handlePopState = (event) => {
+  // Restore the tab from the history state, or derive it from the URL hash.
+  const tab = event.state?.tab || window.location.hash.slice(1) || 'dashboard';
+  if (tab && TAB_LABELS[tab]) {
+    activeTab.value = tab;
+  }
+};
+
+onUnmounted(() => {
+  window.removeEventListener('popstate', handlePopState);
+});
+
 onMounted(async () => {
   const saved = localStorage.getItem('theme');
   isDark.value = saved !== 'light';
@@ -513,6 +535,15 @@ onMounted(async () => {
   restoreAuth();
   await checkHealth();
   await fetchTenants();
+
+  // Restore active tab from URL hash on first load (supports refresh & deep links)
+  const hashTab = window.location.hash.slice(1);
+  if (hashTab && TAB_LABELS[hashTab]) {
+    activeTab.value = hashTab;
+  }
+
+  // Listen for browser back/forward navigation
+  window.addEventListener('popstate', handlePopState);
 
   const handlingResetLink = resetToken && resetEmail;
   if (!handlingResetLink && localStorage.getItem('hrms_tenant_id') && activeTenant.value && authUser.value?.token) {
