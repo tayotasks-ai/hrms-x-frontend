@@ -149,8 +149,11 @@ export function useApi() {
   const disconnectPaystack  = () => call(async () => (await api.delete('/payment-settings/paystack')).data);
 
   // ── Banks / bank account verification ─────────────────────────────────────
-  const getBanks            = () => call(async () => (await api.get('/banks')).data.data);
-  const verifyBankAccount   = (employeeId, d) => call(async () => (await api.post(`/employees/${employeeId}/verify-bank-account`, d)).data.data);
+  // NOTE: These intentionally bypass the global call() wrapper so that a
+  // Paystack-not-connected error does NOT set the global error banner in App.vue.
+  // Each calling component (EmployeeProfile) handles errors locally.
+  const getBanks          = async () => (await api.get('/banks')).data.data;
+  const verifyBankAccount = async (employeeId, d) => (await api.post(`/employees/${employeeId}/verify-bank-account`, d)).data.data;
 
   // ── Performance Cycles ────────────────────────────────────────────────────
   const getPerformanceCycles  = () => call(async () => (await api.get('/performance-cycles')).data.data);
@@ -180,7 +183,9 @@ export function useApi() {
   const getOnboardings      = () => call(async () => (await api.get('/onboarding')).data.data);
   const createOnboarding    = (d) => call(async () => (await api.post('/onboarding', d)).data.data);
   const updateOnboardingTask = (id, taskId, d) => call(async () => (await api.put(`/onboarding/${id}/task/${taskId}`, d)).data.data);
+  const addOnboardingTask   = (id, d) => call(async () => (await api.post(`/onboarding/${id}/task`, d)).data.data);
   const updateOnboardingStage = (id, stage) => call(async () => (await api.put(`/onboarding/${id}/stage`, { stage })).data.data);
+  const deleteOnboarding    = (id) => call(async () => (await api.delete(`/onboarding/${id}`)).data);
 
   // ── Probation ─────────────────────────────────────────────────────────────
   const getProbations       = () => call(async () => (await api.get('/probation')).data.data);
@@ -273,7 +278,7 @@ export function useApi() {
     getKpis, createKpi, updateKpi, submitKpiSelfReview, submitKpiManagerReview, getKpiSummary,
     getCompliances, createCompliance, seedComplianceDefaults, updateCompliance,
     getDocuments, createDocument, updateDocument,
-    getOnboardings, createOnboarding, updateOnboardingTask, updateOnboardingStage,
+    getOnboardings, createOnboarding, updateOnboardingTask, addOnboardingTask, updateOnboardingStage, deleteOnboarding,
     getProbations, createProbation, recordProbationOutcome,
     getEmploymentHistories, createEmploymentHistory,
     getRequisitions, createRequisition, updateRequisitionStatus,
