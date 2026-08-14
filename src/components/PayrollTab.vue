@@ -236,15 +236,16 @@
       <div class="w-full max-w-2xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg flex flex-col justify-between shadow-2xl overflow-hidden relative">
         
         <!-- Print Close Button Banner -->
-        <div class="h-16 px-6 border-b border-zinc-900 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/30 print:hidden">
+        <div class="h-16 px-6 border-b border-zinc-900 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/30">
           <span class="text-xs font-mono text-zinc-500">Document Preview</span>
           <div class="flex items-center gap-2">
-            <button 
-              @click="triggerPrint"
-              class="flex items-center gap-1.5 bg-lime-500 hover:bg-lime-600 dark:bg-lime-400 text-black font-semibold px-3 py-1.5 rounded text-xs transition cursor-pointer"
+            <button
+              @click="downloadPdf(selectedSlip)"
+              :disabled="downloadingPdf"
+              class="flex items-center gap-1.5 bg-lime-500 hover:bg-lime-600 dark:bg-lime-400 text-black font-semibold px-3 py-1.5 rounded text-xs transition cursor-pointer disabled:opacity-50"
             >
-              <Printer class="w-3.5 h-3.5" />
-              <span>Print / Save PDF</span>
+              <Download class="w-3.5 h-3.5" />
+              <span>{{ downloadingPdf ? 'Preparing…' : 'Download PDF' }}</span>
             </button>
             <button @click="closeInvoice" class="p-1.5 hover:bg-zinc-50 dark:bg-zinc-900 rounded text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:text-zinc-200 transition">
               <X class="w-4 h-4" />
@@ -350,18 +351,6 @@
             </div>
           </div>
 
-          <!-- Download PDF -->
-          <div class="flex justify-end print:hidden">
-            <button
-              @click="downloadPdf(selectedSlip)"
-              :disabled="downloadingPdf"
-              class="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs transition disabled:opacity-50 cursor-pointer"
-            >
-              <Download class="w-3.5 h-3.5" />
-              <span>{{ downloadingPdf ? 'Preparing…' : 'Download PDF' }}</span>
-            </button>
-          </div>
-
           <!-- Total Payroll Panel -->
           <div class="bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-900 rounded p-4 flex justify-between items-center mt-6">
             <div>
@@ -387,7 +376,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Eye, Printer, X, Receipt, Download } from 'lucide-vue-next';
+import { Eye, X, Receipt, Download } from 'lucide-vue-next';
 
 // Mirrors backend/utils/payrollCalc.js — Nigeria Tax Act 2025 (effective 1 Jan
 // 2026) PAYE bands, 8% pension on (basic+allowances), 2.5% NHF on basic.
@@ -497,10 +486,6 @@ const closeInvoice = () => {
   selectedSlip.value = null;
 };
 
-const triggerPrint = () => {
-  window.print();
-};
-
 const handleSubmit = async () => {
   if (!form.value.employeeId || !form.value.period) {
     formError.value = 'Please select an employee and period.';
@@ -595,49 +580,3 @@ const formatDate = (dateStr) => {
   });
 };
 </script>
-
-<style>
-/* Specific Print Stylesheet to hide dashboard chrome */
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  #print-area, #print-area * {
-    visibility: visible;
-  }
-  #print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    background-color: white !important;
-    color: black !important;
-  }
-  #print-area .text-zinc-900 dark:text-zinc-100,
-  #print-area .text-zinc-800 dark:text-zinc-200,
-  #print-area .text-zinc-700 dark:text-zinc-300,
-  #print-area .text-zinc-600 dark:text-zinc-400,
-  #print-area .text-zinc-900 dark:text-zinc-50 {
-    color: black !important;
-  }
-  #print-area .text-zinc-500,
-  #print-area .text-zinc-600 {
-    color: #666 !important;
-  }
-  #print-area .bg-white dark:bg-zinc-950,
-  #print-area .bg-zinc-50 dark:bg-zinc-900,
-  #print-area .bg-zinc-50 dark:bg-zinc-900\/40,
-  #print-area .bg-zinc-50 dark:bg-zinc-900\/10 {
-    background-color: transparent !important;
-    border-color: #ddd !important;
-  }
-  #print-area .border,
-  #print-area .border-b,
-  #print-area .border-t {
-    border-color: #ddd !important;
-  }
-  #print-area .text-lime-600 dark:text-lime-400 {
-    color: #2e7d32 !important; /* Dark Green for printable invoice */
-  }
-}
-</style>
