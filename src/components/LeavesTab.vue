@@ -6,13 +6,63 @@
         <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Leave Management</h3>
         <p class="text-xs text-zinc-500 mt-0.5">Manage employee time-off requests and approvals.</p>
       </div>
-      <button 
-        @click="showRequestModal = true"
-        class="w-full sm:w-auto flex items-center justify-center gap-2 bg-lime-500 text-black font-semibold px-4 py-2 rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer"
-      >
-        <CalendarPlus class="w-4 h-4" />
-        <span>Request Leave</span>
-      </button>
+      <div class="w-full sm:w-auto flex items-center gap-2">
+        <button
+          v-if="authUser?.role !== 'Employee'"
+          @click="openPolicyPanel"
+          class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
+        >
+          <Settings class="w-4 h-4" />
+          <span>Leave Policy</span>
+        </button>
+        <button
+          @click="showRequestModal = true"
+          class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-lime-500 text-black font-semibold px-4 py-2 rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer"
+        >
+          <CalendarPlus class="w-4 h-4" />
+          <span>Request Leave</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Leave Policy Panel (HR only) -->
+    <div v-if="showPolicyPanel" class="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h4 class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Annual Leave Policy</h4>
+          <p class="text-xs text-zinc-500 mt-0.5">Days allowed per year, per leave type. Applies to every employee. Set a type to 0 for no cap.</p>
+        </div>
+      </div>
+
+      <div v-if="policyError" class="p-2.5 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
+        {{ policyError }}
+      </div>
+      <div v-if="policySuccess" class="p-2.5 bg-lime-50 dark:bg-lime-950/60 border border-lime-200 dark:border-lime-900 text-lime-700 dark:text-lime-400 rounded text-xs font-mono">
+        {{ policySuccess }}
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div v-for="type in LEAVE_TYPES" :key="type" class="space-y-1">
+          <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider">{{ type }}</label>
+          <input
+            v-model.number="policyForm[type]"
+            type="number"
+            min="0"
+            class="w-full px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:outline-none focus:border-lime-500 transition"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 pt-1">
+        <button
+          @click="savePolicy"
+          :disabled="savingPolicy"
+          class="px-4 py-2 bg-lime-500 text-black font-semibold rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition disabled:opacity-50 cursor-pointer"
+        >
+          {{ savingPolicy ? 'Saving…' : 'Save Policy' }}
+        </button>
+        <button @click="showPolicyPanel = false" class="px-4 py-2 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition cursor-pointer">Close</button>
+      </div>
     </div>
 
     <!-- Leaves List Table -->
@@ -159,8 +209,15 @@
               <option value="Sick">Sick Leave</option>
               <option value="Maternity">Maternity Leave</option>
               <option value="Paternity">Paternity Leave</option>
+              <option value="Compassionate">Compassionate Leave</option>
+              <option value="Study">Study Leave</option>
+              <option value="Emergency">Emergency Leave</option>
               <option value="Unpaid">Unpaid Leave</option>
             </select>
+            <p v-if="selectedBalance" class="text-[11px] font-mono pt-0.5" :class="selectedBalance.unlimited ? 'text-zinc-500' : selectedBalance.remaining === 0 ? 'text-red-500' : 'text-zinc-500'">
+              <span v-if="selectedBalance.unlimited">No cap on {{ form.type }} leave.</span>
+              <span v-else>{{ selectedBalance.remaining }} of {{ selectedBalance.entitlement }} day(s) remaining this year.</span>
+            </p>
           </div>
 
           <!-- Dates Grid -->
@@ -223,9 +280,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
-import { CalendarRange, CalendarPlus, Check, X } from 'lucide-vue-next';
+import { CalendarRange, CalendarPlus, Check, X, Settings } from 'lucide-vue-next';
 
 const props = defineProps({
   leaves: {
@@ -244,11 +301,75 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { createLeave, updateLeaveStatus } = useApi();
+const { createLeave, updateLeaveStatus, getLeavePolicy, updateLeavePolicy } = useApi();
 
 const showRequestModal = ref(false);
 const submitting = ref(false);
 const formError = ref(null);
+
+const LEAVE_TYPES = ['Annual', 'Sick', 'Maternity', 'Paternity', 'Compassionate', 'Study', 'Emergency', 'Unpaid'];
+
+// ── Leave policy (company-wide day allocations per type) ─────────────────────
+const policy = ref({});
+const showPolicyPanel = ref(false);
+const policyForm = ref({});
+const savingPolicy = ref(false);
+const policyError = ref(null);
+const policySuccess = ref(null);
+
+const loadPolicy = async () => {
+  try {
+    policy.value = await getLeavePolicy();
+  } catch {
+    // Non-fatal — balance hints just won't show if this fails.
+  }
+};
+
+const openPolicyPanel = () => {
+  policyForm.value = { ...policy.value };
+  policyError.value = null;
+  policySuccess.value = null;
+  showPolicyPanel.value = true;
+};
+
+const savePolicy = async () => {
+  savingPolicy.value = true;
+  policyError.value = null;
+  policySuccess.value = null;
+  try {
+    policy.value = await updateLeavePolicy(policyForm.value);
+    policySuccess.value = 'Leave policy updated.';
+    setTimeout(() => { policySuccess.value = null; }, 3000);
+  } catch (err) {
+    policyError.value = err.response?.data?.message || err.message || 'Failed to update leave policy.';
+  } finally {
+    savingPolicy.value = false;
+  }
+};
+
+onMounted(loadPolicy);
+
+// ── Balance (client-side hint only — the server enforces the actual cap) ────
+const currentYear = new Date().getFullYear();
+
+const usedDaysForEmployeeType = (employeeId, type) => {
+  return props.leaves
+    .filter(l => {
+      const empId = l.employeeId?._id || l.employeeId;
+      return empId === employeeId && l.type === type && l.status !== 'Rejected'
+        && new Date(l.startDate).getFullYear() === currentYear;
+    })
+    .reduce((sum, l) => sum + (l.workingDays || 0), 0);
+};
+
+const selectedBalance = computed(() => {
+  const empId = form.value.employeeId || (props.authUser?.role === 'Employee' ? props.authUser._id : null);
+  if (!empId || !form.value.type) return null;
+  const entitlement = policy.value?.[form.value.type];
+  if (!entitlement) return { unlimited: true };
+  const used = usedDaysForEmployeeType(empId, form.value.type);
+  return { entitlement, used, remaining: Math.max(entitlement - used, 0) };
+});
 
 const getTodayStr = () => {
   const d = new Date();

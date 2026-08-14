@@ -134,6 +134,8 @@ export function useApi() {
   const getLeaves           = () => call(async () => (await api.get('/leaves')).data.data);
   const createLeave         = (d) => call(async () => (await api.post('/leaves', d)).data.data);
   const updateLeaveStatus   = (id, status) => call(async () => (await api.put(`/leaves/${id}`, { status })).data.data);
+  const getLeavePolicy      = () => call(async () => (await api.get('/leave-policy')).data.data);
+  const updateLeavePolicy   = (d) => call(async () => (await api.put('/leave-policy', d)).data.data);
 
   // ── Payslips ──────────────────────────────────────────────────────────────
   const getPayslips         = () => call(async () => (await api.get('/payslips')).data.data);
@@ -270,7 +272,7 @@ export function useApi() {
     getShoutouts, createShoutout, reactToShoutout,
     getEmployees, getDirectoryLite, getMe, getEmployee, createEmployee, bulkCreateEmployees, updateEmployee, updateEmployeeManager,
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
-    getLeaves, createLeave, updateLeaveStatus,
+    getLeaves, createLeave, updateLeaveStatus, getLeavePolicy, updateLeavePolicy,
     getPayslips, createPayslip, downloadPayslipPdf, payPayslip, payPayslipBatch, finalizePayslipPayment,
     getPaymentSettings, connectPaystack, disconnectPaystack,
     getBanks, verifyBankAccount,
