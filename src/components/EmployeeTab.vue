@@ -142,16 +142,42 @@
           <!-- Department -->
           <div class="space-y-1">
             <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Department</label>
-            <select 
+            <select
+              v-if="!showNewDeptInput"
               v-model="form.departmentId"
               required
+              @change="handleDepartmentSelect"
               class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-805 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition"
             >
               <option value="" disabled>Select Department</option>
-              <option v-for="dept in departments" :key="dept._id" :value="dept._id">
+              <option v-for="dept in departmentOptions" :key="dept._id" :value="dept._id">
                 {{ dept.name }}
               </option>
+              <option value="__new__">+ Add New Department</option>
             </select>
+            <div v-else class="flex gap-2">
+              <input
+                v-model="newDeptName"
+                type="text"
+                placeholder="New department name"
+                class="flex-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-805 rounded text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-lime-500 transition"
+              />
+              <button
+                type="button"
+                @click="handleCreateDepartment"
+                :disabled="creatingDept"
+                class="px-3 py-2 bg-lime-500 text-black font-semibold rounded text-xs hover:bg-lime-600 transition cursor-pointer disabled:opacity-50"
+              >
+                {{ creatingDept ? 'Adding...' : 'Add' }}
+              </button>
+              <button
+                type="button"
+                @click="cancelNewDepartment"
+                class="px-3 py-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded text-xs hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
 
           <!-- Salary -->
@@ -232,10 +258,11 @@
       v-if="selectedEmployee" 
       class="hidden lg:block absolute right-0 top-0 bottom-0 w-1/2 xl:w-2/5 z-10"
     >
-      <EmployeeProfile 
-        :employee="selectedEmployee" 
-        @close="selectedEmployee = null" 
-        @updated="handleProfileUpdate" 
+      <EmployeeProfile
+        :employee="selectedEmployee"
+        :departments="departmentOptions"
+        @close="selectedEmployee = null"
+        @updated="handleProfileUpdate"
       />
     </div>
 
@@ -245,10 +272,11 @@
       class="lg:hidden fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-end z-50"
     >
       <div class="w-full sm:w-96 h-full">
-        <EmployeeProfile 
-          :employee="selectedEmployee" 
-          @close="selectedEmployee = null" 
-          @updated="handleProfileUpdate" 
+        <EmployeeProfile
+          :employee="selectedEmployee"
+          :departments="departmentOptions"
+          @close="selectedEmployee = null"
+          @updated="handleProfileUpdate"
         />
       </div>
     </div>
@@ -274,13 +302,52 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { createEmployee } = useApi();
+const { createEmployee, createDepartment } = useApi();
 
 const searchQuery = ref('');
 const showAddModal = ref(false);
 const submitting = ref(false);
 const formError = ref(null);
 const selectedEmployee = ref(null);
+
+const showNewDeptInput = ref(false);
+const newDeptName = ref('');
+const creatingDept = ref(false);
+const localNewDepartments = ref([]);
+
+const departmentOptions = computed(() => {
+  const known = new Set(props.departments.map(d => d._id));
+  return [...props.departments, ...localNewDepartments.value.filter(d => !known.has(d._id))];
+});
+
+const handleDepartmentSelect = () => {
+  if (form.value.departmentId === '__new__') {
+    form.value.departmentId = '';
+    showNewDeptInput.value = true;
+  }
+};
+
+const cancelNewDepartment = () => {
+  showNewDeptInput.value = false;
+  newDeptName.value = '';
+};
+
+const handleCreateDepartment = async () => {
+  if (!newDeptName.value.trim()) return;
+  creatingDept.value = true;
+  try {
+    const newDept = await createDepartment({ name: newDeptName.value.trim() });
+    localNewDepartments.value.push(newDept);
+    form.value.departmentId = newDept._id;
+    showNewDeptInput.value = false;
+    newDeptName.value = '';
+    emit('refresh');
+  } catch (err) {
+    formError.value = err.response?.data?.message || err.message || 'Failed to create department.';
+  } finally {
+    creatingDept.value = false;
+  }
+};
 
 const handleProfileUpdate = (updatedEmployee) => {
   // Option 1: Emit refresh to trigger a full refetch from parent
@@ -317,8 +384,7 @@ const filteredEmployees = computed(() => {
     emp.name.toLowerCase().includes(q) || 
     emp.email.toLowerCase().includes(q) || 
     emp.role.toLowerCase().includes(q) || 
-    (emp.departmentId?.name || '').toLowerCase().includes(q) ||
-    (emp.department || '').toLowerCase().includes(q)
+    (emp.departmentId?.name || '').toLowerCase().includes(q)
   );
 });
 
@@ -326,6 +392,8 @@ const closeModal = () => {
   showAddModal.value = false;
   form.value = { ...initialForm };
   formError.value = null;
+  showNewDeptInput.value = false;
+  newDeptName.value = '';
 };
 
 const handleSubmit = async () => {

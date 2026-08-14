@@ -105,8 +105,14 @@ export function useApi() {
   // ── Dashboard ──────────────────────────────────────────────────────────────
   const getDashboardStats = () => call(async () => (await api.get('/dashboard/stats')).data.data);
 
+  // ── Shoutouts ──────────────────────────────────────────────────────────────
+  const getShoutouts       = () => call(async () => (await api.get('/shoutouts')).data.data);
+  const createShoutout     = (d) => call(async () => (await api.post('/shoutouts', d)).data.data);
+  const reactToShoutout    = (id, emoji) => call(async () => (await api.put(`/shoutouts/${id}/react`, { emoji })).data.data);
+
   // ── Employees ──────────────────────────────────────────────────────────────
   const getEmployees        = () => call(async () => (await api.get('/employees')).data.data);
+  const getDirectoryLite    = () => call(async () => (await api.get('/employees/directory-lite')).data.data);
   const getMe               = () => call(async () => (await api.get('/employees/me')).data.data);
   const getEmployee         = (id) => call(async () => (await api.get(`/employees/${id}`)).data.data);
   const createEmployee      = (d) => call(async () => (await api.post('/employees', d)).data.data);
@@ -137,6 +143,9 @@ export function useApi() {
   const getKpis             = () => call(async () => (await api.get('/kpis')).data.data);
   const createKpi           = (d) => call(async () => (await api.post('/kpis', d)).data.data);
   const updateKpi           = (id, d) => call(async () => (await api.put(`/kpis/${id}`, d)).data.data);
+  const submitKpiSelfReview    = (id, d) => call(async () => (await api.put(`/kpis/${id}/self-review`, d)).data.data);
+  const submitKpiManagerReview = (id, d) => call(async () => (await api.put(`/kpis/${id}/manager-review`, d)).data.data);
+  const getKpiSummary          = (cycleId) => call(async () => (await api.get('/kpis/summary', { params: { cycleId } })).data.data);
 
   // ── Compliance ────────────────────────────────────────────────────────────
   const getCompliances      = () => call(async () => (await api.get('/compliance')).data.data);
@@ -226,12 +235,13 @@ export function useApi() {
     registerTenant, loginUser,
     // Modules
     getDashboardStats,
-    getEmployees, getMe, getEmployee, createEmployee, updateEmployee, updateEmployeeManager,
+    getShoutouts, createShoutout, reactToShoutout,
+    getEmployees, getDirectoryLite, getMe, getEmployee, createEmployee, updateEmployee, updateEmployeeManager,
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getLeaves, createLeave, updateLeaveStatus,
     getPayslips, createPayslip,
     getPerformanceCycles, createPerformanceCycle, updatePerformanceCycle,
-    getKpis, createKpi, updateKpi,
+    getKpis, createKpi, updateKpi, submitKpiSelfReview, submitKpiManagerReview, getKpiSummary,
     getCompliances, createCompliance, seedComplianceDefaults, updateCompliance,
     getDocuments, createDocument, updateDocument,
     getOnboardings, createOnboarding, updateOnboardingTask, updateOnboardingStage,

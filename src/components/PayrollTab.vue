@@ -257,7 +257,7 @@
               <div class="space-y-1 font-sans">
                 <p class="text-sm font-bold text-zinc-800 dark:text-zinc-200">{{ selectedSlip.employeeId?.name || 'Deleted Employee' }}</p>
                 <p class="text-zinc-600 dark:text-zinc-400">{{ selectedSlip.employeeId?.role }}</p>
-                <p class="text-zinc-500">{{ selectedSlip.employeeId?.department }} Department</p>
+                <p class="text-zinc-500">{{ selectedSlip.employeeId?.departmentId?.name }} Department</p>
                 <p class="text-zinc-500 font-mono">{{ selectedSlip.employeeId?.email }}</p>
               </div>
             </div>
@@ -353,7 +353,7 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { generatePayslip } = useApi();
+const { createPayslip } = useApi();
 
 const showGenerateModal = ref(false);
 const showInvoiceModal = ref(false);
@@ -406,7 +406,7 @@ const handleSubmit = async () => {
   formError.value = null;
 
   try {
-    await generatePayslip({
+    await createPayslip({
       employeeId: form.value.employeeId,
       period: form.value.period,
       allowances: form.value.allowances ? parseFloat(form.value.allowances) : 0,

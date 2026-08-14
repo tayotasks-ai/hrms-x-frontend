@@ -158,12 +158,16 @@
               
               <div class="space-y-1">
                 <label class="block text-[9px] font-mono text-zinc-600 dark:text-zinc-400 uppercase">New Department</label>
-                <input 
+                <select
                   v-model="form.toDepartment"
-                  type="text"
                   required
                   class="w-full px-2 py-1.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition"
-                />
+                >
+                  <option value="" disabled>Select Department</option>
+                  <option v-for="dept in departments" :key="dept._id" :value="dept.name">
+                    {{ dept.name }}
+                  </option>
+                </select>
               </div>
               <div class="space-y-1">
                 <label class="block text-[9px] font-mono text-zinc-600 dark:text-zinc-400 uppercase">New Role</label>
@@ -263,6 +267,10 @@ const props = defineProps({
   employees: {
     type: Array,
     required: true
+  },
+  departments: {
+    type: Array,
+    default: () => []
   }
 });
 
@@ -301,12 +309,13 @@ const managerCandidates = computed(() => {
 const populateCurrentState = () => {
   const selectedEmp = props.employees.find(e => e._id === form.value.employeeId);
   if (selectedEmp) {
-    form.value.fromDepartment = selectedEmp.department;
+    const currentDeptName = selectedEmp.departmentId?.name || '';
+    form.value.fromDepartment = currentDeptName;
     form.value.fromRole = selectedEmp.role;
     form.value.fromManager = selectedEmp.managerId?._id || null;
-    
+
     // Set defaults to current
-    form.value.toDepartment = selectedEmp.department;
+    form.value.toDepartment = currentDeptName;
     form.value.toRole = selectedEmp.role;
   }
 };

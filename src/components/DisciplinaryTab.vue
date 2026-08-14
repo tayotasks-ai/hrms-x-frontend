@@ -51,7 +51,7 @@
                     {{ c.reportedEmployee?.name || 'Deleted Employee' }}
                   </div>
                   <div class="text-[10px] text-zinc-500 font-mono mt-0.5">
-                    {{ c.reportedEmployee?.department }}
+                    {{ c.reportedEmployee?.departmentId?.name }}
                   </div>
                 </td>
                 <td class="py-4 px-6">

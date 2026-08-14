@@ -80,7 +80,10 @@
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
               <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase">Department</label>
-              <input v-model="form.department" required class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm outline-none" />
+              <select v-model="form.department" required class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm outline-none">
+                <option value="" disabled>Select Department</option>
+                <option v-for="dept in departments" :key="dept._id" :value="dept.name">{{ dept.name }}</option>
+              </select>
             </div>
             <div class="space-y-1">
               <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase">Location</label>
@@ -115,7 +118,7 @@
         <div v-if="authUser?.role !== 'Employee'" class="space-y-1 mb-6">
           <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase">Select Your Profile (Demo Only)</label>
           <select v-model="applyEmployeeId" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm outline-none">
-            <option v-for="emp in employees" :key="emp._id" :value="emp._id">{{ emp.firstName }} {{ emp.lastName }}</option>
+            <option v-for="emp in employees" :key="emp._id" :value="emp._id">{{ emp.name }}</option>
           </select>
         </div>
 
@@ -136,7 +139,7 @@
           <div v-if="authUser?.role !== 'Employee'" class="space-y-1">
             <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase">Your Profile (Referrer)</label>
             <select v-model="referForm.referrerId" required class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm outline-none">
-              <option v-for="emp in employees" :key="emp._id" :value="emp._id">{{ emp.firstName }} {{ emp.lastName }}</option>
+              <option v-for="emp in employees" :key="emp._id" :value="emp._id">{{ emp.name }}</option>
             </select>
           </div>
           <div class="space-y-1">
@@ -171,6 +174,10 @@ const props = defineProps({
   employees: {
     type: Array,
     required: true
+  },
+  departments: {
+    type: Array,
+    default: () => []
   },
   authUser: {
     type: Object,

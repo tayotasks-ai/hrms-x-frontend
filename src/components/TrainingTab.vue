@@ -135,7 +135,7 @@
             <div class="flex-1 space-y-1">
               <label class="block text-[10px] font-bold text-indigo-800 dark:text-indigo-400 uppercase tracking-wider">Enroll Employee</label>
               <select v-model="enrollEmployeeId" class="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-indigo-200 dark:border-indigo-800 rounded text-sm outline-none">
-                <option v-for="emp in employees" :key="emp._id" :value="emp._id">{{ emp.firstName }} {{ emp.lastName }} ({{ emp.department }})</option>
+                <option v-for="emp in employees" :key="emp._id" :value="emp._id">{{ emp.name }} ({{ emp.departmentId?.name || 'No Department' }})</option>
               </select>
             </div>
             <button @click="submitEnrollment" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded text-sm transition h-[38px]">
@@ -159,8 +159,8 @@
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                   <tr v-for="enr in selectedCourse?.enrollments" :key="enr._id" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/30">
                     <td class="py-3 px-4">
-                      <div class="font-semibold text-zinc-800 dark:text-zinc-200">{{ enr.employeeId?.firstName }} {{ enr.employeeId?.lastName }}</div>
-                      <div class="text-[10px] text-zinc-500 font-mono mt-0.5">{{ enr.employeeId?.department }}</div>
+                      <div class="font-semibold text-zinc-800 dark:text-zinc-200">{{ enr.employeeId?.name || 'Deleted Employee' }}</div>
+                      <div class="text-[10px] text-zinc-500 font-mono mt-0.5">{{ enr.employeeId?.departmentId?.name }}</div>
                     </td>
                     <td class="py-3 px-4">
                       <select 

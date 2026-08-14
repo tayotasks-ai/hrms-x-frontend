@@ -66,8 +66,8 @@
         <template v-else>
           <!-- Dashboard -->
           <div v-if="activeTab === 'dashboard'">
-            <EmployeeDashboard v-if="authUser?.role === 'Employee'" :authUser="authUser" :dashboardData="dashboardStats" @navigate="activeTab = $event" />
-            <StatsGrid v-else :stats="dashboardStats || {}" />
+            <EmployeeDashboard v-if="authUser?.role === 'Employee'" :authUser="authUser" :dashboardData="dashboardStats" :shoutouts="shoutouts" @navigate="activeTab = $event" @refresh="loadAllData(true)" />
+            <StatsGrid v-else :stats="dashboardStats || {}" :shoutouts="shoutouts" :authUser="authUser" @navigate="activeTab = $event" @refresh="loadAllData(true)" />
           </div>
 
           <!-- Profile (ESS) -->
@@ -157,6 +157,7 @@
             v-else-if="activeTab === 'redeployments'"
             :redeployments="redeployments"
             :employees="employees"
+            :departments="departments"
             @refresh="loadAllData(true)"
           />
 
@@ -191,6 +192,7 @@
             v-else-if="activeTab === 'internal-jobs'"
             :internalJobs="internalJobs"
             :employees="employees"
+            :departments="departments"
             :authUser="authUser"
             @refresh="loadAllData(true)"
           />
@@ -292,7 +294,7 @@ const {
   getCompliances, getDocuments, getOnboardings, getProbations, getEmploymentHistories,
   getRequisitions, getRedeployments, getExits, getCases, getBenefits, getTickets,
   getJobArchitecture, getPositions, getInternalJobs, getTrainingCourses, getDepartments,
-  getPerformanceCycles
+  getPerformanceCycles, getShoutouts
 } = useApi();
 
 // UI state
@@ -327,6 +329,7 @@ const positions           = ref([]);
 const internalJobs        = ref([]);
 const trainings           = ref([]);
 const departments         = ref([]);
+const shoutouts           = ref([]);
 
 const isHR = computed(() => authUser.value?.role !== 'Employee');
 
@@ -350,7 +353,7 @@ const loadAllData = async (refreshOnly = false) => {
 
   try {
     // Always load
-    const [stats, leavesData, payslipsData, kpisData, cyclesData, ticketsData, benefitsData, trainingsData, jobsData, emps] = await Promise.all([
+    const [stats, leavesData, payslipsData, kpisData, cyclesData, ticketsData, benefitsData, trainingsData, jobsData, emps, shoutoutsData] = await Promise.all([
       getDashboardStats(),
       getLeaves(),
       getPayslips(),
@@ -360,7 +363,8 @@ const loadAllData = async (refreshOnly = false) => {
       getBenefits(),
       getTrainingCourses(),
       getInternalJobs(),
-      getEmployees()
+      getEmployees(),
+      getShoutouts()
     ]);
 
     dashboardStats.value    = stats;
@@ -373,6 +377,7 @@ const loadAllData = async (refreshOnly = false) => {
     trainings.value         = trainingsData;
     internalJobs.value      = jobsData;
     employees.value         = emps;
+    shoutouts.value         = shoutoutsData;
 
     // Load ESS profile
     if (authUser.value?.role === 'Employee') {

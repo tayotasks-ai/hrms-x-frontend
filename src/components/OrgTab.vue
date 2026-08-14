@@ -107,35 +107,80 @@
                   <span class="text-[10px] font-mono text-zinc-500 bg-zinc-50 dark:bg-zinc-900 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800">
                     {{ kpi.cycleId?.name || 'Legacy KPI' }}
                   </span>
+                  <span v-if="kpi.weight" class="text-[10px] font-mono text-zinc-500 bg-zinc-50 dark:bg-zinc-900 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800">
+                    {{ kpi.weight }}% weight
+                  </span>
                 </div>
               </div>
-              <span :class="[
-                kpi.status === 'Achieved' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900' :
-                kpi.status === 'Missed' ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900' :
-                'bg-lime-100 dark:bg-lime-950 text-lime-700 dark:text-lime-400 border border-lime-200 dark:border-lime-900',
-                'px-2 py-0.5 text-[9px] font-mono uppercase font-semibold rounded'
-              ]">
-                {{ kpi.status }}
-              </span>
+              <div class="flex items-center gap-2 shrink-0">
+                <span :class="[
+                  kpi.reviewStage === 'Signed Off' ? 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-900' :
+                  kpi.reviewStage === 'Pending Manager-Review' ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900' :
+                  'bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800',
+                  'px-2 py-0.5 text-[9px] font-mono uppercase font-semibold rounded'
+                ]">
+                  {{ kpi.reviewStage }}
+                </span>
+                <button
+                  v-if="canAssignKpi"
+                  @click="openEditKpi(kpi)"
+                  class="text-[10px] font-semibold px-2 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition"
+                >
+                  Edit
+                </button>
+              </div>
             </div>
 
-            <!-- Progress Bar calculation -->
-            <div class="space-y-1">
-              <div class="flex justify-between text-xs font-mono">
-                <span class="text-zinc-500">Target Progress</span>
-                <span class="text-zinc-700 dark:text-zinc-300 font-bold">{{ kpi.currentValue }} / {{ kpi.targetValue }} ({{ calculatePercentage(kpi.currentValue, kpi.targetValue) }}%)</span>
+            <!-- Review workflow: submitted ratings + next action -->
+            <div v-if="kpi.selfRating?.score || kpi.managerRating?.score" class="pt-2 border-t border-zinc-200 dark:border-zinc-800 space-y-1.5">
+              <div v-if="kpi.selfRating?.score" class="text-xs">
+                <span class="font-mono text-zinc-500">Self &bull; </span>
+                <span class="font-bold text-zinc-700 dark:text-zinc-300">{{ kpi.selfRating.score }}/5</span>
+                <span v-if="kpi.selfRating.comment" class="text-zinc-500"> &mdash; {{ kpi.selfRating.comment }}</span>
               </div>
-              <div class="w-full h-1.5 bg-zinc-50 dark:bg-zinc-900 rounded overflow-hidden">
-                <div 
-                  :class="[
-                    kpi.status === 'Achieved' ? 'bg-emerald-500' :
-                    kpi.status === 'Missed' ? 'bg-red-500' : 'bg-lime-500',
-                    'h-full rounded transition-all duration-300'
-                  ]"
-                  :style="{ width: `${calculatePercentage(kpi.currentValue, kpi.targetValue)}%` }"
-                ></div>
+              <div v-if="kpi.managerRating?.score" class="text-xs">
+                <span class="font-mono text-zinc-500">Manager &bull; </span>
+                <span class="font-bold text-zinc-700 dark:text-zinc-300">{{ kpi.managerRating.score }}/5</span>
+                <span v-if="kpi.managerRating.comment" class="text-zinc-500"> &mdash; {{ kpi.managerRating.comment }}</span>
               </div>
             </div>
+
+            <div v-if="canSubmitSelfReview(kpi) || canSubmitManagerReview(kpi)" class="flex justify-end pt-1">
+              <button
+                v-if="canSubmitSelfReview(kpi)"
+                @click="openReviewModal(kpi, 'self')"
+                class="text-[10px] font-semibold px-2.5 py-1 rounded bg-lime-500 text-black hover:bg-lime-600 transition cursor-pointer"
+              >
+                Submit Self-Review
+              </button>
+              <button
+                v-if="canSubmitManagerReview(kpi)"
+                @click="openReviewModal(kpi, 'manager')"
+                class="text-[10px] font-semibold px-2.5 py-1 rounded bg-sky-500 text-black hover:bg-sky-600 transition cursor-pointer"
+              >
+                Submit Manager Review
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Performance Summary -->
+      <div v-if="authUser?.role !== 'Employee' && openCycle && teamPerformanceSummary.length > 0" class="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+        <h4 class="text-xs font-mono font-bold text-zinc-500 uppercase tracking-widest mb-3">Team Performance &bull; {{ openCycle.name }}</h4>
+        <div class="space-y-2">
+          <div
+            v-for="row in teamPerformanceSummary"
+            :key="row.employee._id"
+            class="flex items-center justify-between p-2.5 bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-900 rounded"
+          >
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{ row.employee.name }}</span>
+              <span class="text-[10px] text-zinc-500 font-mono">{{ row.signedOff }}/{{ row.total }} signed off</span>
+            </div>
+            <span class="text-xs font-mono font-bold" :class="row.overallRating ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400 dark:text-zinc-600'">
+              {{ row.overallRating ? `${row.overallRating} / 5` : 'Pending' }}
+            </span>
           </div>
         </div>
       </div>
@@ -206,7 +251,7 @@
         <div class="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <div class="flex items-center gap-2">
             <Target class="w-4 h-4 text-lime-600 dark:text-lime-400" />
-            <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Assign Performance KPI</h3>
+            <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">{{ editingKpi ? 'Edit Performance KPI' : 'Assign Performance KPI' }}</h3>
           </div>
           <button @click="closeModal" class="p-1 hover:bg-zinc-50 dark:bg-zinc-900 rounded text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:text-zinc-200 transition">
             <X class="w-4 h-4" />
@@ -252,71 +297,50 @@
 
           <!-- Description -->
           <div class="space-y-1">
-            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Target Details</label>
-            <textarea 
+            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Success Criteria</label>
+            <textarea
               v-model="form.description"
               rows="3"
-              placeholder="Provide specific metrics and criteria..."
+              placeholder="What does 'done' look like for this KPI?"
               class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-850 rounded text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-650 focus:outline-none focus:border-lime-500 transition"
             ></textarea>
           </div>
 
-          <!-- Target & Current Values -->
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Target Metric Value</label>
-              <input 
-                v-model="form.targetValue"
-                type="number"
-                required
-                min="1"
-                placeholder="100"
-                class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-805 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition font-mono"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Starting Value</label>
-              <input 
-                v-model="form.currentValue"
-                type="number"
-                min="0"
-                placeholder="0"
-                class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-805 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition font-mono"
-              />
-            </div>
+          <!-- Review Cycle -->
+          <div class="space-y-1">
+            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Review Cycle</label>
+            <select
+              v-model="form.cycleId"
+              required
+              class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-805 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition"
+            >
+              <option value="" disabled>Select Cycle</option>
+              <option
+                v-for="cycle in performanceCycles"
+                :key="cycle._id"
+                :value="cycle._id"
+                :disabled="cycle.status !== 'Open'"
+              >
+                {{ cycle.name }} ({{ cycle.status }})
+              </option>
+            </select>
           </div>
 
-          <!-- Cycle & Status -->
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Review Cycle</label>
-              <select 
-                v-model="form.cycleId"
-                required
-                class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-805 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition"
-              >
-                <option value="" disabled>Select Cycle</option>
-                <option 
-                  v-for="cycle in performanceCycles" 
-                  :key="cycle._id" 
-                  :value="cycle._id"
-                  :disabled="cycle.status !== 'Open'"
-                >
-                  {{ cycle.name }} ({{ cycle.status }})
-                </option>
-              </select>
+          <!-- Weight -->
+          <div class="space-y-1">
+            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Weight in Overall Score (optional)</label>
+            <div class="relative">
+              <input
+                v-model="form.weight"
+                type="number"
+                min="0"
+                max="100"
+                placeholder="e.g. 40"
+                class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-805 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition font-mono"
+              />
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500 font-mono">%</span>
             </div>
-            <div class="space-y-1">
-              <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Goal Status</label>
-              <select 
-                v-model="form.status"
-                class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-805 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition"
-              >
-                <option value="Active">Active</option>
-                <option value="Achieved">Achieved</option>
-                <option value="Missed">Missed</option>
-              </select>
-            </div>
+            <p class="text-[10px] text-zinc-500">Leave blank to split evenly with this employee's other KPIs in the cycle.</p>
           </div>
         </form>
 
@@ -337,7 +361,7 @@
             :disabled="submitting"
           >
             <span v-if="submitting">Processing...</span>
-            <span v-else>Assign KPI</span>
+            <span v-else>{{ editingKpi ? 'Save Changes' : 'Assign KPI' }}</span>
           </button>
         </div>
       </div>
@@ -435,13 +459,89 @@
       </div>
     </div>
 
+    <!-- Review Modal (self or manager) -->
+    <div
+      v-if="showReviewModal"
+      class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      @click.self="closeReviewModal"
+    >
+      <div class="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col justify-between shadow-2xl overflow-hidden">
+        <div class="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <Star class="w-4 h-4 text-lime-600 dark:text-lime-400" />
+            <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">
+              {{ reviewMode === 'self' ? 'Self-Review' : 'Manager Review' }} &mdash; {{ reviewTarget?.title }}
+            </h3>
+          </div>
+          <button @click="closeReviewModal" class="p-1 hover:bg-zinc-50 dark:bg-zinc-900 rounded text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:text-zinc-200 transition">
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <form @submit.prevent="submitReview" class="p-6 space-y-4">
+          <div v-if="reviewError" class="p-3 bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 rounded text-xs font-mono">
+            {{ reviewError }}
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Score</label>
+            <div class="flex items-center gap-2">
+              <button
+                v-for="n in 5"
+                :key="n"
+                type="button"
+                @click="reviewForm.score = n"
+                :class="[
+                  reviewForm.score >= n ? 'text-lime-500' : 'text-zinc-300 dark:text-zinc-700',
+                  'transition hover:scale-110 cursor-pointer'
+                ]"
+              >
+                <Star class="w-6 h-6" :fill="reviewForm.score >= n ? 'currentColor' : 'none'" />
+              </button>
+              <span class="text-xs font-mono text-zinc-500 ml-2">{{ reviewForm.score || 0 }}/5</span>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Comment</label>
+            <textarea
+              v-model="reviewForm.comment"
+              rows="3"
+              placeholder="What went well, what could improve?"
+              class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-lime-500 transition"
+            ></textarea>
+          </div>
+        </form>
+
+        <div class="h-20 px-6 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            @click="closeReviewModal"
+            class="px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded text-sm hover:bg-zinc-100 dark:bg-zinc-850 transition"
+            :disabled="reviewSubmitting"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            @click="submitReview"
+            class="px-4 py-2 bg-lime-500 text-black font-semibold rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer"
+            :disabled="reviewSubmitting"
+          >
+            <span v-if="reviewSubmitting">Submitting...</span>
+            <span v-else>Submit Review</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Network, Users, Plus, Target, X } from 'lucide-vue-next';
+import { Network, Users, Plus, Target, X, Star } from 'lucide-vue-next';
 import OrgEmployeeNode from './OrgEmployeeNode.vue';
 
 const props = defineProps({
@@ -455,12 +555,13 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { updateEmployeeManager, createKpi, createPerformanceCycle, updatePerformanceCycle } = useApi();
+const { updateEmployeeManager, createKpi, updateKpi, createPerformanceCycle, updatePerformanceCycle, submitKpiSelfReview, submitKpiManagerReview } = useApi();
 
 const activeInnerTab = ref('organogram');
 const isDragOverRoot = ref(false);
 
 const showKpiModal = ref(false);
+const editingKpi = ref(null);
 const submitting = ref(false);
 const formError = ref(null);
 
@@ -469,11 +570,16 @@ const initialForm = {
   cycleId: '',
   title: '',
   description: '',
-  targetValue: '',
-  currentValue: 0,
-  status: 'Active'
+  weight: ''
 };
 const form = ref({ ...initialForm });
+
+const showReviewModal = ref(false);
+const reviewTarget = ref(null);
+const reviewMode = ref('self'); // 'self' | 'manager'
+const reviewSubmitting = ref(false);
+const reviewError = ref(null);
+const reviewForm = ref({ score: 0, comment: '' });
 
 const showCycleModal = ref(false);
 const cycleForm = ref({
@@ -544,18 +650,25 @@ const handleManagerChange = async ({ employeeId, newManagerId }) => {
   }
 };
 
+const openEditKpi = (kpi) => {
+  editingKpi.value = kpi;
+  form.value = {
+    employeeId: kpi.employeeId?._id || kpi.employeeId || '',
+    cycleId: kpi.cycleId?._id || kpi.cycleId || '',
+    title: kpi.title,
+    description: kpi.description || '',
+    weight: kpi.weight ?? ''
+  };
+  showKpiModal.value = true;
+};
+
 const closeModal = () => {
   showKpiModal.value = false;
   showCycleModal.value = false;
+  editingKpi.value = null;
   form.value = { ...initialForm };
   cycleForm.value = { name: '', startDate: '', endDate: '', status: 'Draft' };
   formError.value = null;
-};
-
-const calculatePercentage = (current, target) => {
-  if (!target) return 0;
-  const pct = Math.round((current / target) * 100);
-  return Math.min(100, Math.max(0, pct)); // clamp between 0 and 100
 };
 
 const formatDate = (dateString) => {
@@ -564,7 +677,7 @@ const formatDate = (dateString) => {
 };
 
 const handleSubmit = async () => {
-  if (!form.value.employeeId || !form.value.title || !form.value.targetValue || !form.value.cycleId) {
+  if (!form.value.employeeId || !form.value.title || !form.value.cycleId) {
     formError.value = 'Please complete all required fields.';
     return;
   }
@@ -573,20 +686,24 @@ const handleSubmit = async () => {
   formError.value = null;
 
   try {
-    await createKpi({
+    const payload = {
       employeeId: form.value.employeeId,
       cycleId: form.value.cycleId,
       title: form.value.title,
       description: form.value.description,
-      targetValue: parseFloat(form.value.targetValue),
-      currentValue: form.value.currentValue ? parseFloat(form.value.currentValue) : 0,
-      status: form.value.status
-    });
-    
+      weight: form.value.weight !== '' ? parseFloat(form.value.weight) : null
+    };
+
+    if (editingKpi.value) {
+      await updateKpi(editingKpi.value._id, payload);
+    } else {
+      await createKpi(payload);
+    }
+
     emit('refresh');
     closeModal();
   } catch (err) {
-    formError.value = err.response?.data?.message || err.message || 'Failed to assign KPI.';
+    formError.value = err.response?.data?.message || err.message || (editingKpi.value ? 'Failed to update KPI.' : 'Failed to assign KPI.');
   } finally {
     submitting.value = false;
   }
@@ -627,4 +744,90 @@ const toggleCycleStatus = async (cycle) => {
     alert(err.response?.data?.message || err.message || 'Failed to update cycle status.');
   }
 };
+
+// ── Review workflow ──────────────────────────────────────────────────────────
+const canSubmitSelfReview = (kpi) => {
+  if (kpi.reviewStage !== 'Pending Self-Review') return false;
+  if (props.authUser?.role !== 'Employee') return false;
+  return String(kpi.employeeId?._id || kpi.employeeId) === String(props.authUser._id);
+};
+
+const canSubmitManagerReview = (kpi) => {
+  if (kpi.reviewStage !== 'Pending Manager-Review') return false;
+  if (props.authUser?.role !== 'Employee') return true; // HR can always sign off
+  const managerId = kpi.employeeId?.managerId;
+  const managerIdString = typeof managerId === 'object' ? managerId?._id : managerId;
+  return managerIdString && String(managerIdString) === String(props.authUser._id);
+};
+
+const openReviewModal = (kpi, mode) => {
+  reviewTarget.value = kpi;
+  reviewMode.value = mode;
+  reviewForm.value = { score: 0, comment: '' };
+  reviewError.value = null;
+  showReviewModal.value = true;
+};
+
+const closeReviewModal = () => {
+  showReviewModal.value = false;
+  reviewTarget.value = null;
+  reviewForm.value = { score: 0, comment: '' };
+  reviewError.value = null;
+};
+
+const submitReview = async () => {
+  if (!reviewForm.value.score) {
+    reviewError.value = 'Please select a score.';
+    return;
+  }
+  reviewSubmitting.value = true;
+  reviewError.value = null;
+  try {
+    const payload = { score: reviewForm.value.score, comment: reviewForm.value.comment };
+    if (reviewMode.value === 'self') {
+      await submitKpiSelfReview(reviewTarget.value._id, payload);
+    } else {
+      await submitKpiManagerReview(reviewTarget.value._id, payload);
+    }
+    emit('refresh');
+    closeReviewModal();
+  } catch (err) {
+    reviewError.value = err.response?.data?.message || err.message || 'Failed to submit review.';
+  } finally {
+    reviewSubmitting.value = false;
+  }
+};
+
+// ── Team performance rollup for the open cycle ───────────────────────────────
+const teamPerformanceSummary = computed(() => {
+  if (!openCycle.value) return [];
+  const relevant = props.kpis.filter(k => String(k.cycleId?._id || k.cycleId) === String(openCycle.value._id));
+
+  const byEmployee = {};
+  relevant.forEach((kpi) => {
+    const empId = kpi.employeeId?._id;
+    if (!empId) return;
+    if (!byEmployee[empId]) {
+      byEmployee[empId] = { employee: kpi.employeeId, total: 0, signedOff: 0, weightedSum: 0, weightSum: 0 };
+    }
+    const bucket = byEmployee[empId];
+    bucket.total += 1;
+    if (kpi.reviewStage === 'Signed Off' && kpi.finalScore) {
+      bucket.signedOff += 1;
+      const empKpiCount = relevant.filter(k => String(k.employeeId?._id) === String(empId)).length;
+      const w = kpi.weight ?? (100 / empKpiCount);
+      bucket.weightedSum += kpi.finalScore * w;
+      bucket.weightSum += w;
+    }
+  });
+
+  return Object.values(byEmployee)
+    .map(b => ({
+      employee: b.employee,
+      total: b.total,
+      signedOff: b.signedOff,
+      overallRating: b.weightSum > 0 ? Math.round((b.weightedSum / b.weightSum) * 10) / 10 : null
+    }))
+    .sort((a, b) => (b.overallRating || 0) - (a.overallRating || 0));
+});
 </script>

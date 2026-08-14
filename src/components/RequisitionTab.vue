@@ -157,7 +157,7 @@
                 :key="emp._id" 
                 :value="emp._id"
               >
-                {{ emp.name }} ({{ emp.department }})
+                {{ emp.name }} ({{ emp.departmentId?.name || 'No Department' }})
               </option>
             </select>
           </div>
@@ -344,7 +344,7 @@ const formatCurrency = (val) => {
 
 const handleStatusUpdate = async (id, decision) => {
   try {
-    await updateRequisitionStatus(id, { status: decision });
+    await updateRequisitionStatus(id, decision);
     emit('refresh');
   } catch (err) {
     alert(err.response?.data?.message || 'Failed to update requisition status.');

@@ -45,6 +45,40 @@
           {{ successMsg }}
         </div>
 
+        <!-- 0. Employment -->
+        <div class="space-y-4">
+          <h4 class="text-xs font-mono font-bold text-zinc-500 uppercase tracking-widest border-b border-zinc-200 dark:border-zinc-800 pb-2">Employment</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-wider text-zinc-500">Email (Contact)</label>
+              <input v-model="form.email" type="email" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition" />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-wider text-zinc-500">Role / Job Title</label>
+              <input v-model="form.role" type="text" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition" />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-wider text-zinc-500">Department</label>
+              <select v-model="form.departmentId" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition">
+                <option value="" disabled>Select Department</option>
+                <option v-for="dept in departments" :key="dept._id" :value="dept._id">{{ dept.name }}</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-wider text-zinc-500">Monthly Salary (₦)</label>
+              <input v-model="form.salary" type="number" min="0" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-wider text-zinc-500">Status</label>
+              <select v-model="form.status" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition">
+                <option value="Active">Active</option>
+                <option value="Onboarding">Onboarding</option>
+                <option value="Offboarded">Offboarded</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <!-- 1. Bio Data -->
         <div class="space-y-4">
           <h4 class="text-xs font-mono font-bold text-zinc-500 uppercase tracking-widest border-b border-zinc-200 dark:border-zinc-800 pb-2">Bio Data</h4>
@@ -156,6 +190,10 @@ const props = defineProps({
   employee: {
     type: Object,
     required: true
+  },
+  departments: {
+    type: Array,
+    default: () => []
   }
 });
 
@@ -167,6 +205,11 @@ const errorMsg = ref(null);
 const successMsg = ref(null);
 
 const form = ref({
+  email: '',
+  role: '',
+  departmentId: '',
+  salary: '',
+  status: 'Active',
   gender: '',
   maritalStatus: '',
   phone: '',
@@ -178,6 +221,11 @@ const form = ref({
 const initForm = () => {
   const e = props.employee;
   form.value = {
+    email: e.email || '',
+    role: e.role || '',
+    departmentId: e.departmentId?._id || e.departmentId || '',
+    salary: e.salary ?? '',
+    status: e.status || 'Active',
     gender: e.gender || '',
     maritalStatus: e.maritalStatus || '',
     phone: e.phone || '',
@@ -210,6 +258,8 @@ const saveChanges = async () => {
     const payload = JSON.parse(JSON.stringify(form.value));
     if (payload.gender === '') payload.gender = null;
     if (payload.maritalStatus === '') payload.maritalStatus = null;
+    payload.salary = payload.salary === '' ? undefined : parseFloat(payload.salary);
+    if (!payload.departmentId) delete payload.departmentId;
 
     const updated = await updateEmployee(props.employee._id, payload);
     successMsg.value = "Profile updated successfully!";

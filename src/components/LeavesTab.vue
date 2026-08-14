@@ -82,7 +82,7 @@
               <td class="py-4 px-6 text-right" v-if="authUser?.role !== 'Employee'">
                 <div v-if="leave.status === 'Pending'" class="flex items-center justify-end gap-2">
                   <button 
-                    @click="handleStatusUpdate(leave._id, 'Approved')"
+                    @click="handleStatusUpdate(leave._id, 'HR Approved')"
                     class="p-1.5 bg-lime-500/10 hover:bg-lime-500 text-lime-600 dark:text-lime-400 hover:text-black rounded border border-lime-900/40 transition active:scale-95 cursor-pointer"
                     title="Approve Leave"
                   >
@@ -142,7 +142,7 @@
                 :key="emp._id" 
                 :value="emp._id"
               >
-                {{ emp.name }} ({{ emp.department }})
+                {{ emp.name }} ({{ emp.departmentId?.name || 'No Department' }})
               </option>
             </select>
           </div>
@@ -244,7 +244,7 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { createLeave, approveLeave, rejectLeave } = useApi();
+const { createLeave, updateLeaveStatus } = useApi();
 
 const showRequestModal = ref(false);
 const submitting = ref(false);
@@ -294,11 +294,7 @@ const formatDateRange = (start, end) => {
 
 const handleStatusUpdate = async (leaveId, decision) => {
   try {
-    if (decision === 'Approved') {
-      await approveLeave(leaveId);
-    } else {
-      await rejectLeave(leaveId);
-    }
+    await updateLeaveStatus(leaveId, decision);
     emit('refresh');
   } catch (err) {
     alert(err.response?.data?.message || 'Failed to update leave request status.');

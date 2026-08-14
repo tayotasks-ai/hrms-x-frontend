@@ -160,23 +160,33 @@
             {{ formError }}
           </div>
 
-          <!-- Employee Select -->
-          <div class="space-y-1">
+          <!-- Employee Select (searchable) -->
+          <div class="space-y-1 relative">
             <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Employee</label>
-            <select 
-              v-model="form.employeeId"
+            <input
+              v-model="employeeSearchQuery"
+              type="text"
               required
+              placeholder="Search staff member..."
+              autocomplete="off"
+              @focus="showEmployeeDropdown = true"
+              @blur="showEmployeeDropdown = false"
               class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-red-500 transition"
+            />
+            <div
+              v-if="showEmployeeDropdown && filteredEmployeeOptions.length"
+              class="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded shadow-lg"
             >
-              <option value="" disabled>Select Staff Member</option>
-              <option 
-                v-for="emp in activeEmployeesOnly" 
-                :key="emp._id" 
-                :value="emp._id"
+              <button
+                v-for="emp in filteredEmployeeOptions"
+                :key="emp._id"
+                type="button"
+                @mousedown.prevent="selectEmployee(emp)"
+                class="w-full text-left px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
               >
-                {{ emp.name }} ({{ emp.department }})
-              </option>
-            </select>
+                {{ emp.name }} ({{ emp.departmentId?.name || 'No Department' }})
+              </button>
+            </div>
           </div>
 
           <!-- Exit Type -->
@@ -285,14 +295,34 @@ const initialForm = {
 
 const form = ref({ ...initialForm });
 
+const employeeSearchQuery = ref('');
+const showEmployeeDropdown = ref(false);
+
 const activeEmployeesOnly = computed(() => {
   return props.employees.filter(emp => emp.status !== 'Offboarded');
 });
+
+const filteredEmployeeOptions = computed(() => {
+  const q = employeeSearchQuery.value.trim().toLowerCase();
+  if (!q) return activeEmployeesOnly.value;
+  return activeEmployeesOnly.value.filter(emp =>
+    emp.name.toLowerCase().includes(q) ||
+    (emp.departmentId?.name || '').toLowerCase().includes(q)
+  );
+});
+
+const selectEmployee = (emp) => {
+  form.value.employeeId = emp._id;
+  employeeSearchQuery.value = `${emp.name} (${emp.departmentId?.name || 'No Department'})`;
+  showEmployeeDropdown.value = false;
+};
 
 const closeModal = () => {
   showModal.value = false;
   form.value = { ...initialForm };
   formError.value = null;
+  employeeSearchQuery.value = '';
+  showEmployeeDropdown.value = false;
 };
 
 const formatDate = (dateString) => {

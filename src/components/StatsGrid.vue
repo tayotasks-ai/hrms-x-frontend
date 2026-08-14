@@ -1,5 +1,49 @@
 <template>
   <div class="space-y-6">
+    <!-- Action Inbox: everything actually waiting on HR right now -->
+    <div class="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6">
+      <div class="flex items-center justify-between pb-4 border-b border-zinc-900">
+        <div>
+          <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Action Inbox</h3>
+          <p class="text-xs text-zinc-500 mt-0.5">Everything waiting on a decision, oldest first.</p>
+        </div>
+        <ListChecks class="w-4 h-4 text-zinc-500" />
+      </div>
+
+      <div v-if="!stats.actionInbox || stats.actionInbox.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
+        <CheckCircle2 class="w-8 h-8 text-lime-600 dark:text-lime-500 mb-2" />
+        <p class="text-xs text-zinc-500">Nothing pending. Inbox zero.</p>
+      </div>
+
+      <div v-else class="mt-4 space-y-2">
+        <button
+          v-for="item in stats.actionInbox"
+          :key="item.id"
+          @click="$emit('navigate', item.tab)"
+          class="w-full flex items-center justify-between gap-4 p-3 rounded bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-900 hover:border-lime-500/50 transition text-left cursor-pointer"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <div :class="[
+              inboxIconBg(item.type),
+              'w-9 h-9 rounded flex items-center justify-center shrink-0'
+            ]">
+              <component :is="inboxIcon(item.type)" class="w-4 h-4" />
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">{{ item.title }}</h4>
+              <p class="text-xs text-zinc-500 truncate">{{ item.subtitle }}</p>
+            </div>
+          </div>
+          <span
+            v-if="item.staleDays > 0"
+            class="text-[10px] font-mono text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900 shrink-0"
+          >
+            {{ item.staleDays >= 999 ? 'Overdue' : `${item.staleDays}d` }}
+          </span>
+        </button>
+      </div>
+    </div>
+
     <!-- Top Row: Core Metrics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <!-- Metric 1: Employee Count -->
@@ -41,9 +85,12 @@
       </div>
     </div>
 
+    <!-- Recognition -->
+    <ShoutoutsWidget :shoutouts="shoutouts" :authUser="authUser" @refresh="$emit('refresh')" />
+
     <!-- Bottom Row: Bento Box Timeline and Progress -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      
+
       <!-- Milestones Panel (Upcoming Birthdays & Anniversaries) - 2 Columns wide -->
       <div class="md:col-span-2 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6 flex flex-col hover:border-zinc-300 dark:hover:border-zinc-700 transition duration-150">
         <div class="flex items-center justify-between pb-4 border-b border-zinc-900">
@@ -131,16 +178,39 @@
 </template>
 
 <script setup>
-import { 
-  Users, 
-  CreditCard, 
-  CalendarRange, 
-  Gift, 
-  Cake, 
-  Award, 
-  Layers, 
-  Sparkles 
+import {
+  Users,
+  CreditCard,
+  CalendarRange,
+  Gift,
+  Cake,
+  Award,
+  Layers,
+  Sparkles,
+  ListChecks,
+  CheckCircle2,
+  CalendarClock,
+  ClipboardList,
+  ShieldAlert,
+  ClipboardCheck
 } from 'lucide-vue-next';
+import ShoutoutsWidget from './ShoutoutsWidget.vue';
+
+defineEmits(['navigate', 'refresh']);
+
+const inboxIcon = (type) => ({
+  leave: CalendarClock,
+  requisition: ClipboardList,
+  probation: ShieldAlert,
+  onboarding: ClipboardCheck,
+}[type] || ListChecks);
+
+const inboxIconBg = (type) => ({
+  leave: 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-900/60',
+  requisition: 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-900/60',
+  probation: 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60',
+  onboarding: 'bg-lime-100 dark:bg-lime-950 text-lime-700 dark:text-lime-400 border border-lime-200 dark:border-lime-900/60',
+}[type] || 'bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800');
 
 defineProps({
   stats: {
@@ -153,8 +223,11 @@ defineProps({
       currentMonth: new Date().toLocaleString('default', { month: 'long' }),
       milestones: [],
       departmentBreakdown: {},
+      actionInbox: [],
     })
-  }
+  },
+  shoutouts: { type: Array, default: () => [] },
+  authUser: { type: Object, default: null }
 });
 
 // Utility to format currency nicely

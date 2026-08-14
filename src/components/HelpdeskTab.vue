@@ -51,7 +51,7 @@
                     {{ t.employeeId?.name || 'Unknown Employee' }}
                   </div>
                   <div class="text-[10px] text-zinc-500 font-mono mt-0.5">
-                    {{ t.employeeId?.department }}
+                    {{ t.employeeId?.departmentId?.name }}
                   </div>
                 </td>
                 <td class="py-4 px-6">
@@ -294,7 +294,7 @@ onMounted(() => {
 
 // All employees who can handle HR tickets (admins/HR)
 const hrEmployees = computed(() => {
-  return props.employees.filter(e => e.role === 'Admin' || e.department === 'HR');
+  return props.employees.filter(e => e.role === 'Admin' || e.departmentId?.name === 'HR');
 });
 
 watch(() => props.tickets, (newVals) => {

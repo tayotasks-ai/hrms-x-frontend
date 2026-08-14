@@ -100,6 +100,9 @@
       </button>
     </div>
 
+    <!-- Recognition -->
+    <ShoutoutsWidget :shoutouts="shoutouts" :authUser="authUser" @refresh="$emit('refresh')" />
+
     <!-- Announcements / Policies Box -->
     <div class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
       <h3 class="font-display font-bold text-sm text-zinc-800 dark:text-zinc-200 mb-3">Recent Company Updates</h3>
@@ -121,15 +124,17 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { CalendarOff, CreditCard, LifeBuoy, FileText, Briefcase, BookOpen, Target, Clock, Sparkles } from 'lucide-vue-next';
+import ShoutoutsWidget from './ShoutoutsWidget.vue';
 
 defineProps({
   authUser: {
     type: Object,
     required: true
-  }
+  },
+  shoutouts: { type: Array, default: () => [] }
 });
 
-defineEmits(['navigate']);
+defineEmits(['navigate', 'refresh']);
 
 const currentTime = ref('');
 let timer;
