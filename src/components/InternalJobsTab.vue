@@ -66,7 +66,7 @@
     <!-- Modals -->
 
     <!-- Create Post Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showCreateModal = false">
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showCreateModal = false">
       <div class="w-full max-w-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col shadow-2xl overflow-hidden">
         <div class="p-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
           <h3 class="font-display font-bold text-sm">Post Internal Job</h3>
@@ -110,7 +110,7 @@
     </div>
 
     <!-- Apply Modal -->
-    <div v-if="applyModalOpen" class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="applyModalOpen = false">
+    <div v-if="applyModalOpen" class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="applyModalOpen = false">
       <div class="w-full max-w-sm bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6">
         <h3 class="font-display font-bold text-lg mb-2">Apply Internally</h3>
         <p class="text-sm text-zinc-500 mb-6">Are you sure you want to apply for <strong>{{ selectedJob?.title }}</strong>? Your profile will be shared with HR.</p>
@@ -130,7 +130,7 @@
     </div>
 
     <!-- Refer Modal -->
-    <div v-if="referModalOpen" class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="referModalOpen = false">
+    <div v-if="referModalOpen" class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="referModalOpen = false">
       <div class="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6">
         <h3 class="font-display font-bold text-lg mb-2">Refer a Candidate</h3>
         <p class="text-sm text-zinc-500 mb-6">Refer someone for <strong>{{ selectedJob?.title }}</strong> to earn a bonus of {{ selectedJob?.referralBonus?.currency }} {{ selectedJob?.referralBonus?.amount }}.</p>

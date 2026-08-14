@@ -96,7 +96,7 @@
     <!-- Supabase-style Slide-over Modal Backdrop -->
     <div 
       v-if="showAddModal" 
-      class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-end z-50 transition-opacity"
+      class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-end z-50 transition-opacity"
       @click.self="closeModal"
     >
       <!-- Modal Container -->
@@ -272,7 +272,7 @@
     <!-- Bulk Import Modal -->
     <div
       v-if="showBulkModal"
-      class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
       @click.self="closeBulkModal"
     >
       <div class="w-full max-w-2xl max-h-[85vh] bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col shadow-2xl overflow-hidden">
@@ -391,7 +391,7 @@
     <!-- Mobile modal for profile -->
     <div 
       v-if="selectedEmployee" 
-      class="lg:hidden fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-end z-50"
+      class="lg:hidden fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-end z-50"
     >
       <div class="w-full sm:w-96 h-full">
         <EmployeeProfile

@@ -67,7 +67,7 @@
     </div>
 
     <!-- Create Course Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showCreateModal = false">
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showCreateModal = false">
       <div class="w-full max-w-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col shadow-2xl overflow-hidden">
         <div class="p-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
           <h3 class="font-display font-bold text-sm">Add Training Course</h3>
@@ -119,7 +119,7 @@
     </div>
 
     <!-- Enrollments Management Modal -->
-    <div v-if="enrollModalOpen" class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="enrollModalOpen = false">
+    <div v-if="enrollModalOpen" class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="enrollModalOpen = false">
       <div class="w-full max-w-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col shadow-2xl overflow-hidden h-[80vh]">
         <div class="p-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900">
           <div>

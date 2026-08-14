@@ -89,7 +89,7 @@
 
     <!-- Modals (Family & Role) -->
     <!-- Family Modal -->
-    <div v-if="showFamilyModal" class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showFamilyModal = false">
+    <div v-if="showFamilyModal" class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showFamilyModal = false">
       <div class="w-full max-w-sm bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col justify-between shadow-2xl overflow-hidden">
         <div class="p-4 border-b border-zinc-200 dark:border-zinc-800"><h3 class="font-display font-bold text-sm">New Job Family</h3></div>
         <form @submit.prevent="submitFamily" class="p-4 space-y-4">
@@ -103,7 +103,7 @@
     </div>
 
     <!-- Role Modal -->
-    <div v-if="showRoleModal" class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showRoleModal = false">
+    <div v-if="showRoleModal" class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4" @click.self="showRoleModal = false">
       <div class="w-full max-w-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col justify-between shadow-2xl overflow-hidden">
         <div class="p-4 border-b border-zinc-200 dark:border-zinc-800"><h3 class="font-display font-bold text-sm">New Job Role</h3></div>
         <form @submit.prevent="submitRole" class="p-4 space-y-4 max-h-[70vh] overflow-y-auto">

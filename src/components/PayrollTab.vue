@@ -157,7 +157,7 @@
     <!-- OTP Finalize Modal -->
     <div
       v-if="otpModalPayslipId"
-      class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
       @click.self="closeOtpModal"
     >
       <div class="w-full max-w-sm bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-2xl overflow-hidden">
@@ -198,7 +198,7 @@
     <!-- Process Payroll (Generate Payslip) Modal -->
     <div 
       v-if="showGenerateModal" 
-      class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
       @click.self="closeGenerateModal"
     >
       <div class="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col justify-between shadow-2xl overflow-hidden">
@@ -325,7 +325,7 @@
     <!-- Statutory Remittance Reports Modal -->
     <div
       v-if="showRemittanceModal"
-      class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
       @click.self="closeRemittanceModal"
     >
       <div class="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col justify-between shadow-2xl overflow-hidden">
@@ -394,7 +394,7 @@
     <!-- Printable Payslip Invoice Modal -->
     <div 
       v-if="showInvoiceModal && selectedSlip" 
-      class="fixed inset-0 bg-white dark:bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      class="fixed inset-0 bg-black/40 dark:bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       @click.self="closeInvoice"
     >
       <div class="w-full max-w-2xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-lg flex flex-col justify-between shadow-2xl overflow-hidden relative">
