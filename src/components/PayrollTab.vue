@@ -377,41 +377,8 @@
 import { ref, computed } from 'vue';
 import { useApi } from '../composables/useApi';
 import { Eye, X, Receipt, Download } from 'lucide-vue-next';
-
-// Mirrors backend/utils/payrollCalc.js — Nigeria Tax Act 2025 (effective 1 Jan
-// 2026) PAYE bands, 8% pension on (basic+allowances), 2.5% NHF on basic.
-// This is a client-side preview only; the server always recomputes on submit.
-const PAYE_BANDS = [
-  { upTo: 800000, rate: 0 },
-  { upTo: 3000000, rate: 0.15 },
-  { upTo: 12000000, rate: 0.18 },
-  { upTo: 25000000, rate: 0.21 },
-  { upTo: 50000000, rate: 0.23 },
-  { upTo: Infinity, rate: 0.25 },
-];
-const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
-const annualPaye = (income) => {
-  let tax = 0, prevCap = 0;
-  const inc = Math.max(0, income || 0);
-  for (const band of PAYE_BANDS) {
-    if (inc <= prevCap) break;
-    tax += (Math.min(inc, band.upTo) - prevCap) * band.rate;
-    prevCap = band.upTo;
-  }
-  return tax;
-};
-const estimatePayroll = (basicSalary, allowances, otherDeductions) => {
-  const basic = Number(basicSalary) || 0;
-  const allow = Number(allowances) || 0;
-  const other = Number(otherDeductions) || 0;
-  const grossPay = basic + allow;
-  const pension = round2(grossPay * 0.08);
-  const nhf = round2(basic * 0.025);
-  const annualTaxable = Math.max(0, (grossPay - pension - nhf) * 12);
-  const paye = round2(annualPaye(annualTaxable) / 12);
-  const total = round2(paye + pension + nhf + other);
-  return { grossPay: round2(grossPay), deductions: { paye, pension, nhf, other: round2(other), total }, netPay: round2(grossPay - total) };
-};
+import { estimatePayroll } from '../utils/payrollEstimate';
+import { toCsv, downloadCsv } from '../utils/csv';
 
 const props = defineProps({
   payslips: {
@@ -533,32 +500,18 @@ const downloadPdf = async (slip) => {
 };
 
 // ── CSV export of the payroll register ──────────────────────────────────────
-const csvEscape = (val) => {
-  const s = String(val ?? '');
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-
 const exportPayrollCsv = () => {
   const headers = ['Employee', 'Period', 'Basic Salary', 'Allowances', 'PAYE', 'Pension', 'NHF', 'Other Deductions', 'Net Pay', 'Status'];
-  const lines = [headers.join(',')];
-  for (const slip of props.payslips) {
+  const rows = props.payslips.map((slip) => {
     const d = typeof slip.deductions === 'object' ? slip.deductions : {};
-    lines.push([
-      csvEscape(slip.employeeId?.name || 'Deleted Employee'), csvEscape(slip.period),
-      csvEscape(slip.basicSalary), csvEscape(slip.allowances),
-      csvEscape(d.paye || 0), csvEscape(d.pension || 0), csvEscape(d.nhf || 0), csvEscape(d.other || 0),
-      csvEscape(slip.netPay), csvEscape(slip.status),
-    ].join(','));
-  }
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `payroll-register-${new Date().toISOString().split('T')[0]}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
+    return [
+      slip.employeeId?.name || 'Deleted Employee', slip.period,
+      slip.basicSalary, slip.allowances,
+      d.paye || 0, d.pension || 0, d.nhf || 0, d.other || 0,
+      slip.netPay, slip.status,
+    ];
+  });
+  downloadCsv(toCsv(headers, rows), `payroll-register-${new Date().toISOString().split('T')[0]}.csv`);
 };
 
 // Formatting Utilities

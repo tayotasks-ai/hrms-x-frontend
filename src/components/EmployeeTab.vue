@@ -409,6 +409,7 @@
 import { ref, computed } from 'vue';
 import { useApi } from '../composables/useApi';
 import { Search, Plus, X, UserPlus, Users, Upload, Download, FileSpreadsheet, CheckCircle2, XCircle } from 'lucide-vue-next';
+import { parseCsvText, toCsv, downloadCsv } from '../utils/csv';
 import EmployeeProfile from './EmployeeProfile.vue';
 
 const props = defineProps({
@@ -443,27 +444,6 @@ const bulkResults    = ref(null);
 const CSV_TEMPLATE = 'name,email,role,department,salary,status,joinDate,birthDate\n' +
   'John Doe,john.doe@example.com,Software Engineer,Engineering,500000,Active,2026-01-15,1995-05-20\n';
 
-// Minimal RFC4180-ish CSV parser (handles quoted fields containing commas)
-const parseCsvText = (text) => {
-  const rows = [];
-  let row = [], field = '', inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i++; }
-        else inQuotes = false;
-      } else field += c;
-    } else if (c === '"') inQuotes = true;
-    else if (c === ',') { row.push(field); field = ''; }
-    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-    else if (c === '\r') { /* skip */ }
-    else field += c;
-  }
-  if (field.length || row.length) { row.push(field); rows.push(row); }
-  return rows.filter(r => !(r.length === 1 && r[0].trim() === ''));
-};
-
 const openBulkModal = () => { showBulkModal.value = true; };
 
 const closeBulkModal = () => {
@@ -474,17 +454,7 @@ const closeBulkModal = () => {
   bulkResults.value = null;
 };
 
-const downloadTemplate = () => {
-  const blob = new Blob([CSV_TEMPLATE], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'employee-import-template.csv';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
-};
+const downloadTemplate = () => downloadCsv(CSV_TEMPLATE, 'employee-import-template.csv');
 
 const handleFileSelect = (e) => {
   const file = e.target.files?.[0];
@@ -536,31 +506,15 @@ const handleBulkSubmit = async () => {
 };
 
 // ── CSV export of the current directory (headcount report) ─────────────────
-const csvEscape = (val) => {
-  const s = String(val ?? '');
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-
 const exportHeadcountCsv = () => {
   const headers = ['Name', 'Email', 'Department', 'Role', 'Monthly Salary', 'Status', 'Join Date'];
-  const lines = [headers.join(',')];
-  for (const emp of filteredEmployees.value) {
-    lines.push([
-      csvEscape(emp.name), csvEscape(emp.email),
-      csvEscape(emp.departmentId?.name || emp.department || 'Unassigned'),
-      csvEscape(emp.role), csvEscape(emp.salary),
-      csvEscape(emp.status), csvEscape(emp.joinDate ? new Date(emp.joinDate).toISOString().split('T')[0] : ''),
-    ].join(','));
-  }
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `headcount-${new Date().toISOString().split('T')[0]}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
+  const rows = filteredEmployees.value.map((emp) => [
+    emp.name, emp.email,
+    emp.departmentId?.name || emp.department || 'Unassigned',
+    emp.role, emp.salary,
+    emp.status, emp.joinDate ? new Date(emp.joinDate).toISOString().split('T')[0] : '',
+  ]);
+  downloadCsv(toCsv(headers, rows), `headcount-${new Date().toISOString().split('T')[0]}.csv`);
 };
 
 const showNewDeptInput = ref(false);

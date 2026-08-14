@@ -9,6 +9,9 @@
 
     <AuthModal
       v-if="showAuthModal"
+      :initialView="authModalView"
+      :presetToken="presetResetToken"
+      :presetEmail="presetResetEmail"
       @close="showAuthModal = false"
       @success="handleAuthSuccess"
     />
@@ -40,15 +43,31 @@
         </div>
         <div class="flex items-center gap-3">
           <span class="text-xs font-mono text-zinc-500">{{ activeTenant?.name }}</span>
-          <div class="w-7 h-7 rounded-full bg-lime-500 flex items-center justify-center text-black font-bold text-xs">
-            {{ authUser?.name?.charAt(0)?.toUpperCase() || '?' }}
-          </div>
-          <div class="text-right">
-            <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{ authUser?.name }}</p>
-            <p class="text-[10px] font-mono text-zinc-400">{{ authUser?.role }}</p>
-          </div>
+          <button
+            @click="showChangePasswordModal = true"
+            class="flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-full pr-2 -mr-2 py-0.5 transition cursor-pointer"
+            title="Change password"
+          >
+            <span class="relative">
+              <span class="w-7 h-7 rounded-full bg-lime-500 flex items-center justify-center text-black font-bold text-xs">
+                {{ authUser?.name?.charAt(0)?.toUpperCase() || '?' }}
+              </span>
+              <span v-if="authUser?.isDefaultPassword" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white dark:border-zinc-950"></span>
+            </span>
+            <span class="text-right">
+              <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{ authUser?.name }}</p>
+              <p class="text-[10px] font-mono text-zinc-400">{{ authUser?.role }}</p>
+            </span>
+          </button>
         </div>
       </header>
+
+      <ChangePasswordModal
+        v-if="showChangePasswordModal"
+        :isDefaultPassword="!!authUser?.isDefaultPassword"
+        @close="showChangePasswordModal = false"
+        @changed="handlePasswordChanged"
+      />
 
       <!-- Content area -->
       <div class="flex-1 p-6 overflow-y-auto max-w-7xl w-full mx-auto">
@@ -255,6 +274,9 @@
             :jobArchitecture="jobArchitecture"
             @refresh="loadAllData(true)"
           />
+
+          <!-- Audit Log -->
+          <AuditLogTab v-else-if="activeTab === 'audit-log'" />
         </template>
       </div>
     </main>
@@ -270,6 +292,7 @@ import { AlertCircle, Sun, Moon } from 'lucide-vue-next';
 import Sidebar from './components/Sidebar.vue';
 import LandingPage from './components/LandingPage.vue';
 import AuthModal from './components/AuthModal.vue';
+import ChangePasswordModal from './components/ChangePasswordModal.vue';
 import StatsGrid from './components/StatsGrid.vue';
 import EmployeeDashboard from './components/EmployeeDashboard.vue';
 import EmployeeProfile from './components/EmployeeProfile.vue';
@@ -293,6 +316,7 @@ import TrainingTab from './components/TrainingTab.vue';
 import OrgTab from './components/OrgTab.vue';
 import DepartmentsTab from './components/DepartmentsTab.vue';
 import AttendanceTab from './components/AttendanceTab.vue';
+import AuditLogTab from './components/AuditLogTab.vue';
 
 const {
   tenants, activeTenant, authUser, apiHealth, isLoading, error,
@@ -310,6 +334,10 @@ const showAuthModal = ref(false);
 const activeTab     = ref('dashboard');
 const isRefreshing  = ref(false);
 const isDark        = ref(true);
+const authModalView       = ref('login');
+const presetResetToken    = ref('');
+const presetResetEmail    = ref('');
+const showChangePasswordModal = ref(false);
 
 // Data stores
 const dashboardStats      = ref(null);
@@ -348,7 +376,8 @@ const TAB_LABELS = {
   trainings: 'Training', 'internal-jobs': 'Internal Jobs', disciplinary: 'Disciplinary',
   helpdesk: 'HR Helpdesk', documents: 'Documents', compliance: 'Compliance Calendar',
   'employment-history': 'Employment History', positions: 'Positions',
-  'job-architecture': 'Job Architecture', departments: 'Departments & Hierarchy'
+  'job-architecture': 'Job Architecture', departments: 'Departments & Hierarchy',
+  'audit-log': 'Audit Log'
 };
 const currentTabLabel = computed(() => TAB_LABELS[activeTab.value] || activeTab.value);
 
@@ -436,6 +465,15 @@ const toggleTheme = () => {
 const handleAuthSuccess = () => {
   showAuthModal.value = false;
   showLanding.value = false;
+  if (authUser.value?.isDefaultPassword) {
+    showChangePasswordModal.value = true;
+  }
+};
+
+const handlePasswordChanged = () => {
+  if (authUser.value) {
+    setAuthUser({ ...authUser.value, isDefaultPassword: false });
+  }
 };
 
 const handleLogout = () => {
@@ -455,11 +493,25 @@ onMounted(async () => {
   isDark.value = saved !== 'light';
   document.documentElement.classList.toggle('dark', isDark.value);
 
+  // Password-reset links land here as ?token=...&email=...
+  const params = new URLSearchParams(window.location.search);
+  const resetToken = params.get('token');
+  const resetEmail = params.get('email');
+  if (resetToken && resetEmail) {
+    presetResetToken.value = resetToken;
+    presetResetEmail.value = resetEmail;
+    authModalView.value = 'reset';
+    showLanding.value = true;
+    showAuthModal.value = true;
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   restoreAuth();
   await checkHealth();
   await fetchTenants();
 
-  if (localStorage.getItem('hrms_tenant_id') && activeTenant.value && authUser.value?.token) {
+  const handlingResetLink = resetToken && resetEmail;
+  if (!handlingResetLink && localStorage.getItem('hrms_tenant_id') && activeTenant.value && authUser.value?.token) {
     showLanding.value = false;
   }
 });

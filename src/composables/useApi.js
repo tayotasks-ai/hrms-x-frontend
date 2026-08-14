@@ -102,6 +102,10 @@ export function useApi() {
     }).finally(() => { isLoading.value = false; });
   };
 
+  const changePassword = (d) => call(async () => (await api.put('/auth/change-password', d)).data);
+  const forgotPassword = (email) => call(async () => (await api.post('/auth/forgot-password', { email })).data);
+  const resetPasswordRequest = (d) => call(async () => (await api.post('/auth/reset-password', d)).data);
+
   // ── Dashboard ──────────────────────────────────────────────────────────────
   const getDashboardStats = () => call(async () => (await api.get('/dashboard/stats')).data.data);
 
@@ -235,12 +239,15 @@ export function useApi() {
   const clockOut            = (d) => call(async () => (await api.post('/attendance/clock-out', d)).data.data);
   const getAttendanceToday  = () => call(async () => (await api.get('/attendance/today')).data.data);
 
+  // ── Audit Log ─────────────────────────────────────────────────────────────
+  const getAuditLog = () => call(async () => (await api.get('/audit-log')).data.data);
+
   return {
     // State
     tenants, activeTenant, authUser, apiHealth, isLoading, error,
     // Auth & tenant
     setActiveTenant, setAuthUser, restoreAuth, checkHealth, fetchTenants,
-    registerTenant, loginUser,
+    registerTenant, loginUser, changePassword, forgotPassword, resetPasswordRequest,
     // Modules
     getDashboardStats,
     getShoutouts, createShoutout, reactToShoutout,
@@ -266,5 +273,6 @@ export function useApi() {
     getInternalJobs, createInternalJob, applyForJob, referCandidate,
     getTrainingCourses, createTrainingCourse, enrollEmployee, updateEnrollmentStatus,
     getMyAttendance, clockIn, clockOut, getAttendanceToday,
+    getAuditLog,
   };
 }
