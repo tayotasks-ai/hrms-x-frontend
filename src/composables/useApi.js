@@ -139,6 +139,18 @@ export function useApi() {
   const getPayslips         = () => call(async () => (await api.get('/payslips')).data.data);
   const createPayslip       = (d) => call(async () => (await api.post('/payslips', d)).data.data);
   const downloadPayslipPdf  = (id) => call(async () => (await api.get(`/payslips/${id}/pdf`, { responseType: 'blob' })).data);
+  const payPayslip          = (id) => call(async () => (await api.post(`/payslips/${id}/pay`)).data);
+  const payPayslipBatch     = (payslipIds) => call(async () => (await api.post('/payslips/pay-batch', { payslipIds })).data);
+  const finalizePayslipPayment = (id, otp) => call(async () => (await api.post(`/payslips/${id}/pay/finalize`, { otp })).data);
+
+  // ── Payment Settings (Paystack) ───────────────────────────────────────────
+  const getPaymentSettings  = () => call(async () => (await api.get('/payment-settings')).data.data);
+  const connectPaystack     = (secretKey) => call(async () => (await api.post('/payment-settings/paystack/connect', { secretKey })).data);
+  const disconnectPaystack  = () => call(async () => (await api.delete('/payment-settings/paystack')).data);
+
+  // ── Banks / bank account verification ─────────────────────────────────────
+  const getBanks            = () => call(async () => (await api.get('/banks')).data.data);
+  const verifyBankAccount   = (employeeId, d) => call(async () => (await api.post(`/employees/${employeeId}/verify-bank-account`, d)).data.data);
 
   // ── Performance Cycles ────────────────────────────────────────────────────
   const getPerformanceCycles  = () => call(async () => (await api.get('/performance-cycles')).data.data);
@@ -254,7 +266,9 @@ export function useApi() {
     getEmployees, getDirectoryLite, getMe, getEmployee, createEmployee, bulkCreateEmployees, updateEmployee, updateEmployeeManager,
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getLeaves, createLeave, updateLeaveStatus,
-    getPayslips, createPayslip, downloadPayslipPdf,
+    getPayslips, createPayslip, downloadPayslipPdf, payPayslip, payPayslipBatch, finalizePayslipPayment,
+    getPaymentSettings, connectPaystack, disconnectPaystack,
+    getBanks, verifyBankAccount,
     getPerformanceCycles, createPerformanceCycle, updatePerformanceCycle,
     getKpis, createKpi, updateKpi, submitKpiSelfReview, submitKpiManagerReview, getKpiSummary,
     getCompliances, createCompliance, seedComplianceDefaults, updateCompliance,

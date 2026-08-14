@@ -62,7 +62,7 @@ import {
   LayoutDashboard, Users, CalendarOff, CreditCard, Building2, FileText,
   CheckSquare, ShieldCheck, LogOut, ClipboardList, ArrowRightLeft,
   UserMinus, AlertOctagon, HeartPulse, LifeBuoy, Briefcase, Network,
-  BookOpen, UserCircle, GanttChartSquare, ScrollText, Timer, History
+  BookOpen, UserCircle, GanttChartSquare, ScrollText, Timer, History, Landmark
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -104,6 +104,7 @@ const hrItems = [
   { id: 'compliance',       label: 'Compliance Calendar', icon: CheckSquare },
   { id: 'employment-history', label: 'Employment History', icon: ScrollText },
   { id: 'audit-log',        label: 'Audit Log',           icon: History },
+  { id: 'payment-settings', label: 'Payment Settings',    icon: Landmark },
 ];
 
 const essItems = [

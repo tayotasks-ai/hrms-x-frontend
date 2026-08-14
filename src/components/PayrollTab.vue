@@ -8,6 +8,15 @@
       </div>
       <div v-if="authUser?.role !== 'Employee'" class="w-full sm:w-auto flex items-center gap-2">
         <button
+          v-if="selectedIds.length > 0"
+          @click="payBatchNow"
+          :disabled="batchPaying"
+          class="flex items-center justify-center gap-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold px-4 py-2 rounded text-sm hover:opacity-90 active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
+        >
+          <Banknote class="w-4 h-4" />
+          <span>{{ batchPaying ? 'Paying…' : `Pay Selected (${selectedIds.length})` }}</span>
+        </button>
+        <button
           @click="exportPayrollCsv"
           class="flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
         >
@@ -24,12 +33,19 @@
       </div>
     </div>
 
+    <div v-if="paymentError" class="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
+      {{ paymentError }}
+    </div>
+
     <!-- Payslip Directory -->
     <div class="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse text-sm">
           <thead>
             <tr class="border-b border-zinc-200 dark:border-zinc-850 bg-zinc-50 dark:bg-zinc-900/40 text-zinc-600 dark:text-zinc-400 font-mono text-[11px] uppercase tracking-wider">
+              <th v-if="authUser?.role !== 'Employee'" class="py-3 pl-6 pr-2 w-8">
+                <input type="checkbox" :checked="allPayableSelected" @change="toggleSelectAll" class="accent-lime-500 cursor-pointer" />
+              </th>
               <th class="py-3 px-6">Employee</th>
               <th class="py-3 px-6">Period</th>
               <th class="py-3 px-6">Base Salary</th>
@@ -37,22 +53,32 @@
               <th class="py-3 px-6">Deductions</th>
               <th class="py-3 px-6 text-lime-600 dark:text-lime-400">Net Pay</th>
               <th class="py-3 px-6">Status</th>
-              <th class="py-3 px-6 text-right">Invoice</th>
+              <th class="py-3 px-6">Payment</th>
+              <th class="py-3 px-6 text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-zinc-900">
             <tr v-if="payslips.length === 0" class="text-center text-zinc-500">
-              <td colspan="8" class="py-12">
+              <td :colspan="authUser?.role !== 'Employee' ? 10 : 8" class="py-12">
                 <Receipt class="w-8 h-8 text-zinc-800 mx-auto mb-2" />
                 <p class="text-xs">No payroll cycles processed for this tenant.</p>
               </td>
             </tr>
 
-            <tr 
-              v-for="slip in payslips" 
+            <tr
+              v-for="slip in payslips"
               :key="slip._id"
               class="hover:bg-zinc-50 dark:bg-zinc-900/30 transition-colors"
             >
+              <td v-if="authUser?.role !== 'Employee'" class="py-4 pl-6 pr-2">
+                <input
+                  v-if="isPayable(slip)"
+                  type="checkbox"
+                  :checked="selectedIds.includes(slip._id)"
+                  @change="toggleSelect(slip._id)"
+                  class="accent-lime-500 cursor-pointer"
+                />
+              </td>
               <td class="py-4 px-6">
                 <div class="font-semibold text-zinc-800 dark:text-zinc-200">
                   {{ slip.employeeId?.name || 'Deleted Employee' }}
@@ -75,14 +101,35 @@
                   {{ slip.status }}
                 </span>
               </td>
+              <td class="py-4 px-6">
+                <span :class="[paymentBadgeClass(paymentStatus(slip)), 'px-2 py-0.5 text-[10px] font-mono uppercase font-semibold rounded border']">
+                  {{ paymentStatusLabel(paymentStatus(slip)) }}
+                </span>
+              </td>
               <td class="py-4 px-6 text-right">
                 <div class="flex items-center justify-end gap-2">
+                  <button
+                    v-if="authUser?.role !== 'Employee' && paymentStatus(slip) === 'Pending_OTP'"
+                    @click="openOtpModal(slip._id)"
+                    class="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-400 px-2.5 py-1.5 rounded border border-amber-200 dark:border-amber-900 text-xs transition active:scale-95 cursor-pointer"
+                  >
+                    <ShieldCheck class="w-3.5 h-3.5" />
+                    <span>Enter OTP</span>
+                  </button>
+                  <button
+                    v-else-if="authUser?.role !== 'Employee' && isPayable(slip)"
+                    @click="payNow(slip)"
+                    :disabled="payingIds.includes(slip._id)"
+                    class="flex items-center gap-1 bg-zinc-900 dark:bg-zinc-100 hover:opacity-90 text-white dark:text-zinc-900 px-2.5 py-1.5 rounded text-xs transition active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <Banknote class="w-3.5 h-3.5" />
+                    <span>{{ payingIds.includes(slip._id) ? 'Paying…' : 'Pay Now' }}</span>
+                  </button>
                   <button
                     @click="openInvoice(slip)"
                     class="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 px-2.5 py-1.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs transition active:scale-95 cursor-pointer"
                   >
                     <Eye class="w-3.5 h-3.5 text-zinc-500" />
-                    <span>View Payslip</span>
                   </button>
                   <button
                     @click="downloadPdf(slip)"
@@ -97,6 +144,47 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- OTP Finalize Modal -->
+    <div
+      v-if="otpModalPayslipId"
+      class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      @click.self="closeOtpModal"
+    >
+      <div class="w-full max-w-sm bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-2xl overflow-hidden">
+        <div class="h-14 px-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <ShieldCheck class="w-4 h-4 text-amber-500" />
+            <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Confirm Transfer OTP</h3>
+          </div>
+          <button @click="closeOtpModal" class="p-1 hover:bg-zinc-50 dark:bg-zinc-900 rounded text-zinc-500 transition">
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+        <div class="p-5 space-y-3">
+          <p class="text-xs text-zinc-500">Paystack sent an OTP to your business account's registered phone/email to authorize this transfer. Enter it below to complete the payment.</p>
+          <div v-if="otpError" class="p-2.5 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
+            {{ otpError }}
+          </div>
+          <input
+            v-model="otpValue"
+            type="text"
+            placeholder="Enter OTP"
+            class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:outline-none focus:border-lime-500 transition"
+          />
+        </div>
+        <div class="h-16 px-5 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-end gap-2">
+          <button @click="closeOtpModal" class="px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition">Cancel</button>
+          <button
+            @click="submitOtp"
+            :disabled="otpSubmitting || !otpValue.trim()"
+            class="px-4 py-1.5 bg-lime-500 text-black font-semibold rounded text-sm hover:bg-lime-600 dark:bg-lime-400 transition disabled:opacity-50"
+          >
+            {{ otpSubmitting ? 'Confirming…' : 'Confirm' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -376,7 +464,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Eye, X, Receipt, Download } from 'lucide-vue-next';
+import { Eye, X, Receipt, Download, Banknote, ShieldCheck } from 'lucide-vue-next';
 import { estimatePayroll } from '../utils/payrollEstimate';
 import { toCsv, downloadCsv } from '../utils/csv';
 
@@ -401,7 +489,7 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { createPayslip, downloadPayslipPdf } = useApi();
+const { createPayslip, downloadPayslipPdf, payPayslip, payPayslipBatch, finalizePayslipPayment } = useApi();
 
 const showGenerateModal = ref(false);
 const showInvoiceModal = ref(false);
@@ -409,6 +497,118 @@ const submitting = ref(false);
 const formError = ref(null);
 const selectedSlip = ref(null);
 const downloadingPdf = ref(false);
+
+// ── Payroll disbursement (Paystack) ──────────────────────────────────────────
+const selectedIds = ref([]);
+const payingIds = ref([]);
+const batchPaying = ref(false);
+const paymentError = ref(null);
+const otpModalPayslipId = ref(null);
+const otpValue = ref('');
+const otpError = ref(null);
+const otpSubmitting = ref(false);
+const otpQueue = ref([]); // payslip ids still awaiting OTP entry, processed one at a time
+
+const paymentStatus = (slip) => slip.payment?.status || 'Unpaid';
+const isPayable = (slip) => ['Unpaid', 'Failed'].includes(paymentStatus(slip));
+
+const payableSlipIds = computed(() => props.payslips.filter(isPayable).map(s => s._id));
+const allPayableSelected = computed(() =>
+  payableSlipIds.value.length > 0 && payableSlipIds.value.every(id => selectedIds.value.includes(id))
+);
+
+const toggleSelect = (id) => {
+  selectedIds.value = selectedIds.value.includes(id)
+    ? selectedIds.value.filter(x => x !== id)
+    : [...selectedIds.value, id];
+};
+
+const toggleSelectAll = () => {
+  selectedIds.value = allPayableSelected.value ? [] : [...payableSlipIds.value];
+};
+
+const paymentStatusLabel = (status) => ({
+  Unpaid: 'Unpaid', Processing: 'Processing', Pending_OTP: 'Awaiting OTP', Paid: 'Paid', Failed: 'Failed',
+}[status] || status);
+
+const paymentBadgeClass = (status) => ({
+  Paid: 'bg-lime-100 dark:bg-lime-950 text-lime-700 dark:text-lime-400 border-lime-200 dark:border-lime-900',
+  Processing: 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900',
+  Pending_OTP: 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900',
+  Failed: 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-900',
+  Unpaid: 'bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-500 border-zinc-200 dark:border-zinc-800',
+}[status] || 'bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-500 border-zinc-200 dark:border-zinc-800');
+
+const queueOtpIfNeeded = (requiresOtp, payslipId) => {
+  if (!requiresOtp) return;
+  if (!otpQueue.value.includes(payslipId)) otpQueue.value.push(payslipId);
+  if (!otpModalPayslipId.value) openOtpModal(otpQueue.value.shift());
+};
+
+const payNow = async (slip) => {
+  paymentError.value = null;
+  payingIds.value = [...payingIds.value, slip._id];
+  try {
+    const res = await payPayslip(slip._id);
+    queueOtpIfNeeded(res.data?.requiresOtp, slip._id);
+    emit('refresh');
+  } catch (err) {
+    paymentError.value = err.response?.data?.message || err.message || 'Payment failed.';
+  } finally {
+    payingIds.value = payingIds.value.filter(id => id !== slip._id);
+  }
+};
+
+const payBatchNow = async () => {
+  if (selectedIds.value.length === 0) return;
+  paymentError.value = null;
+  batchPaying.value = true;
+  try {
+    const res = await payPayslipBatch(selectedIds.value);
+    for (const r of res.data || []) {
+      if (r.requiresOtp) queueOtpIfNeeded(true, r.payslipId);
+    }
+    const failed = (res.data || []).filter(r => !r.ok);
+    if (failed.length > 0) {
+      paymentError.value = `${failed.length} payment(s) could not be started: ${failed.map(f => f.message).join('; ')}`;
+    }
+    selectedIds.value = [];
+    emit('refresh');
+  } catch (err) {
+    paymentError.value = err.response?.data?.message || err.message || 'Batch payment failed.';
+  } finally {
+    batchPaying.value = false;
+  }
+};
+
+const openOtpModal = (payslipId) => {
+  otpModalPayslipId.value = payslipId;
+  otpValue.value = '';
+  otpError.value = null;
+};
+
+const closeOtpModal = () => {
+  otpModalPayslipId.value = null;
+  otpValue.value = '';
+  otpError.value = null;
+};
+
+const submitOtp = async () => {
+  if (!otpModalPayslipId.value || !otpValue.value.trim()) return;
+  otpSubmitting.value = true;
+  otpError.value = null;
+  try {
+    await finalizePayslipPayment(otpModalPayslipId.value, otpValue.value.trim());
+    emit('refresh');
+    closeOtpModal();
+    // Move on to the next payslip awaiting OTP, if any.
+    if (otpQueue.value.length > 0) openOtpModal(otpQueue.value.shift());
+  } catch (err) {
+    otpError.value = err.response?.data?.message || err.message || 'Could not confirm OTP.';
+  } finally {
+    otpSubmitting.value = false;
+  }
+};
 
 const initialForm = {
   employeeId: '',

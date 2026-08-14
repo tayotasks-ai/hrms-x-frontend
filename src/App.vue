@@ -277,6 +277,9 @@
 
           <!-- Audit Log -->
           <AuditLogTab v-else-if="activeTab === 'audit-log'" />
+
+          <!-- Payment Settings (HR only) -->
+          <PaymentSettingsTab v-else-if="activeTab === 'payment-settings'" />
         </template>
       </div>
     </main>
@@ -317,6 +320,7 @@ import OrgTab from './components/OrgTab.vue';
 import DepartmentsTab from './components/DepartmentsTab.vue';
 import AttendanceTab from './components/AttendanceTab.vue';
 import AuditLogTab from './components/AuditLogTab.vue';
+import PaymentSettingsTab from './components/PaymentSettingsTab.vue';
 
 const {
   tenants, activeTenant, authUser, apiHealth, isLoading, error,
@@ -377,7 +381,7 @@ const TAB_LABELS = {
   helpdesk: 'HR Helpdesk', documents: 'Documents', compliance: 'Compliance Calendar',
   'employment-history': 'Employment History', positions: 'Positions',
   'job-architecture': 'Job Architecture', departments: 'Departments & Hierarchy',
-  'audit-log': 'Audit Log'
+  'audit-log': 'Audit Log', 'payment-settings': 'Payment Settings'
 };
 const currentTabLabel = computed(() => TAB_LABELS[activeTab.value] || activeTab.value);
 
