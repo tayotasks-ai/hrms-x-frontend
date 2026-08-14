@@ -24,6 +24,13 @@
           <span>Export CSV</span>
         </button>
         <button
+          @click="showRemittanceModal = true"
+          class="flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
+        >
+          <FileSpreadsheet class="w-4 h-4" />
+          <span>Remittance Reports</span>
+        </button>
+        <button
           @click="showGenerateModal = true"
           class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-lime-500 text-black font-semibold px-4 py-2 rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer"
         >
@@ -315,6 +322,75 @@
       </div>
     </div>
 
+    <!-- Statutory Remittance Reports Modal -->
+    <div
+      v-if="showRemittanceModal"
+      class="fixed inset-0 bg-white dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      @click.self="closeRemittanceModal"
+    >
+      <div class="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col justify-between shadow-2xl overflow-hidden">
+        <div class="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <FileSpreadsheet class="w-4 h-4 text-lime-600 dark:text-lime-400" />
+            <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Statutory Remittance Report</h3>
+          </div>
+          <button @click="closeRemittanceModal" class="p-1 hover:bg-zinc-50 dark:bg-zinc-900 rounded text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:text-zinc-200 transition">
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <p class="text-xs text-zinc-500">A starting point for your monthly filings — not a certified template from FIRS, PenCom, or the NHF. Review before submitting.</p>
+
+          <div v-if="remittanceError" class="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
+            {{ remittanceError }}
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Payroll Period</label>
+            <select
+              v-model="remittanceForm.period"
+              class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition"
+            >
+              <option value="" disabled>Select Period</option>
+              <option v-for="p in availablePeriods" :key="p" :value="p">{{ p }}</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Report Type</label>
+            <select
+              v-model="remittanceForm.type"
+              class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition"
+            >
+              <option value="paye">PAYE (FIRS)</option>
+              <option value="pension">Pension (PenCom)</option>
+              <option value="nhf">NHF</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="h-20 px-6 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            @click="closeRemittanceModal"
+            class="px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded text-sm hover:bg-zinc-100 dark:hover:bg-zinc-850 transition"
+            :disabled="downloadingRemittance"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            @click="downloadRemittance"
+            :disabled="downloadingRemittance || !remittanceForm.period"
+            class="px-4 py-2 bg-lime-500 text-black font-semibold rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
+          >
+            {{ downloadingRemittance ? 'Preparing…' : 'Download CSV' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Printable Payslip Invoice Modal -->
     <div 
       v-if="showInvoiceModal && selectedSlip" 
@@ -464,7 +540,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Eye, X, Receipt, Download, Banknote, ShieldCheck } from 'lucide-vue-next';
+import { Eye, X, Receipt, Download, Banknote, ShieldCheck, FileSpreadsheet } from 'lucide-vue-next';
 import { estimatePayroll } from '../utils/payrollEstimate';
 import { toCsv, downloadCsv } from '../utils/csv';
 
@@ -489,7 +565,7 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { createPayslip, downloadPayslipPdf, payPayslip, payPayslipBatch, finalizePayslipPayment } = useApi();
+const { createPayslip, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment } = useApi();
 
 const showGenerateModal = ref(false);
 const showInvoiceModal = ref(false);
@@ -712,6 +788,44 @@ const exportPayrollCsv = () => {
     ];
   });
   downloadCsv(toCsv(headers, rows), `payroll-register-${new Date().toISOString().split('T')[0]}.csv`);
+};
+
+// ── Statutory remittance reports ─────────────────────────────────────────────
+const showRemittanceModal = ref(false);
+const remittanceForm = ref({ period: '', type: 'paye' });
+const remittanceError = ref(null);
+const downloadingRemittance = ref(false);
+
+const availablePeriods = computed(() => {
+  return [...new Set(props.payslips.map(s => s.period))];
+});
+
+const closeRemittanceModal = () => {
+  showRemittanceModal.value = false;
+  remittanceForm.value = { period: '', type: 'paye' };
+  remittanceError.value = null;
+};
+
+const downloadRemittance = async () => {
+  if (!remittanceForm.value.period) return;
+  downloadingRemittance.value = true;
+  remittanceError.value = null;
+  try {
+    const blob = await downloadRemittanceReport(remittanceForm.value.period, remittanceForm.value.type);
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${remittanceForm.value.type}-remittance-${remittanceForm.value.period.replace(/\s+/g, '-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    closeRemittanceModal();
+  } catch (err) {
+    remittanceError.value = err.response?.data?.message || err.message || 'Failed to generate report.';
+  } finally {
+    downloadingRemittance.value = false;
+  }
 };
 
 // Formatting Utilities

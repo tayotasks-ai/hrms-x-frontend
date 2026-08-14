@@ -76,7 +76,7 @@
               <th class="py-3 px-6">Duration</th>
               <th class="py-3 px-6">Reason</th>
               <th class="py-3 px-6">Status</th>
-              <th class="py-3 px-6 text-right" v-if="authUser?.role !== 'Employee'">Actions</th>
+              <th class="py-3 px-6 text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-zinc-900">
@@ -120,25 +120,21 @@
                 {{ leave.reason || 'No reason provided' }}
               </td>
               <td class="py-4 px-6">
-                <span :class="[
-                  leave.status === 'Approved' ? 'bg-lime-100 dark:bg-lime-950 text-lime-700 dark:text-lime-400 border-lime-200 dark:border-lime-900' :
-                  leave.status === 'Rejected' ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900' :
-                  'bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900',
-                  'px-2 py-0.5 text-[10px] font-mono uppercase font-semibold rounded border'
-                ]">
+                <span :class="[statusBadgeClass(leave.status), 'px-2 py-0.5 text-[10px] font-mono uppercase font-semibold rounded border']">
                   {{ leave.status }}
                 </span>
               </td>
-              <td class="py-4 px-6 text-right" v-if="authUser?.role !== 'Employee'">
-                <div v-if="leave.status === 'Pending'" class="flex items-center justify-end gap-2">
-                  <button 
-                    @click="handleStatusUpdate(leave._id, 'HR Approved')"
+              <td class="py-4 px-6 text-right">
+                <!-- Manager's first sign-off -->
+                <div v-if="isManagerOf(leave) && leave.status === 'Pending'" class="flex items-center justify-end gap-2">
+                  <button
+                    @click="handleStatusUpdate(leave._id, 'Manager Approved')"
                     class="p-1.5 bg-lime-500/10 hover:bg-lime-500 text-lime-600 dark:text-lime-400 hover:text-black rounded border border-lime-900/40 transition active:scale-95 cursor-pointer"
-                    title="Approve Leave"
+                    title="Approve as Manager"
                   >
                     <Check class="w-3.5 h-3.5" />
                   </button>
-                  <button 
+                  <button
                     @click="handleStatusUpdate(leave._id, 'Rejected')"
                     class="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded border border-red-900/40 transition active:scale-95 cursor-pointer"
                     title="Reject Leave"
@@ -146,7 +142,38 @@
                     <X class="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <span v-else class="text-xs text-zinc-600 font-mono">Processed</span>
+
+                <!-- HR's final sign-off: from Manager Approved, or straight from Pending if the employee has no manager -->
+                <div
+                  v-else-if="authUser?.role !== 'Employee' && (leave.status === 'Manager Approved' || (leave.status === 'Pending' && !leave.employeeId?.managerId))"
+                  class="flex items-center justify-end gap-2"
+                >
+                  <button
+                    @click="handleStatusUpdate(leave._id, 'HR Approved')"
+                    class="p-1.5 bg-lime-500/10 hover:bg-lime-500 text-lime-600 dark:text-lime-400 hover:text-black rounded border border-lime-900/40 transition active:scale-95 cursor-pointer"
+                    title="Give Final HR Approval"
+                  >
+                    <Check class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="handleStatusUpdate(leave._id, 'Rejected')"
+                    class="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded border border-red-900/40 transition active:scale-95 cursor-pointer"
+                    title="Reject Leave"
+                  >
+                    <X class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <!-- HR marks the approved leave as processed (payroll/records updated) -->
+                <button
+                  v-else-if="authUser?.role !== 'Employee' && leave.status === 'HR Approved'"
+                  @click="handleStatusUpdate(leave._id, 'Processed')"
+                  class="px-2.5 py-1 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded border border-zinc-200 dark:border-zinc-800 text-[10px] uppercase font-semibold transition active:scale-95 cursor-pointer"
+                >
+                  Mark Processed
+                </button>
+
+                <span v-else class="text-xs text-zinc-600 font-mono">&mdash;</span>
               </td>
             </tr>
           </tbody>
@@ -421,6 +448,21 @@ const handleStatusUpdate = async (leaveId, decision) => {
     alert(err.response?.data?.message || 'Failed to update leave request status.');
   }
 };
+
+// True when the logged-in account is this leave request's employee's direct manager.
+const isManagerOf = (leave) => {
+  return props.authUser?.role === 'Employee'
+    && leave.employeeId?.managerId
+    && leave.employeeId.managerId === props.authUser._id;
+};
+
+const statusBadgeClass = (status) => ({
+  'HR Approved': 'bg-lime-100 dark:bg-lime-950 text-lime-700 dark:text-lime-400 border-lime-200 dark:border-lime-900',
+  'Processed': 'bg-lime-100 dark:bg-lime-950 text-lime-700 dark:text-lime-400 border-lime-200 dark:border-lime-900',
+  'Manager Approved': 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900',
+  'Rejected': 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900',
+  'Pending': 'bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900',
+}[status] || 'bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-500 border-zinc-200 dark:border-zinc-800');
 
 const handleSubmit = async () => {
   if (props.authUser?.role === 'Employee') {

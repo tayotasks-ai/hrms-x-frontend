@@ -43,6 +43,7 @@
         </div>
         <div class="flex items-center gap-3">
           <span class="text-xs font-mono text-zinc-500">{{ activeTenant?.name }}</span>
+          <NotificationBell @navigate="activeTab = $event" />
           <button
             @click="showChangePasswordModal = true"
             class="flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-full pr-2 -mr-2 py-0.5 transition cursor-pointer"
@@ -65,8 +66,10 @@
       <ChangePasswordModal
         v-if="showChangePasswordModal"
         :isDefaultPassword="!!authUser?.isDefaultPassword"
+        :initialTwoFactorEnabled="!!authUser?.twoFactorEnabled"
         @close="showChangePasswordModal = false"
         @changed="handlePasswordChanged"
+        @twoFactorChanged="handleTwoFactorChanged"
       />
 
       <!-- Content area -->
@@ -321,6 +324,7 @@ import DepartmentsTab from './components/DepartmentsTab.vue';
 import AttendanceTab from './components/AttendanceTab.vue';
 import AuditLogTab from './components/AuditLogTab.vue';
 import PaymentSettingsTab from './components/PaymentSettingsTab.vue';
+import NotificationBell from './components/NotificationBell.vue';
 
 const {
   tenants, activeTenant, authUser, apiHealth, isLoading, error,
@@ -477,6 +481,12 @@ const handleAuthSuccess = () => {
 const handlePasswordChanged = () => {
   if (authUser.value) {
     setAuthUser({ ...authUser.value, isDefaultPassword: false });
+  }
+};
+
+const handleTwoFactorChanged = (enabled) => {
+  if (authUser.value) {
+    setAuthUser({ ...authUser.value, twoFactorEnabled: enabled });
   }
 };
 

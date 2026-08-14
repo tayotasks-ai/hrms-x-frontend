@@ -54,6 +54,29 @@
           </div>
         </div>
 
+        <!-- 2FA: Email OTP -->
+        <div v-else-if="view === 'otp'" class="space-y-5">
+          <div class="text-center space-y-1 mb-6">
+            <h3 class="text-xl font-extrabold text-zinc-900 dark:text-white">Enter your login code</h3>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">We sent a 6-digit code to {{ otpEmail }}.</p>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5">Code</label>
+              <input v-model="otpForm.code" type="text" inputmode="numeric" maxlength="6" required placeholder="123456" class="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-center text-lg tracking-[0.5em] font-mono text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-lime-500/50 focus:border-lime-500 transition" />
+            </div>
+
+            <button @click="handleVerifyOtp" :disabled="isLoading" class="w-full bg-lime-500 text-black font-bold py-3 rounded-lg text-sm hover:bg-lime-400 active:scale-[0.98] transition disabled:opacity-50 mt-2 shadow-[0_4px_14px_0_rgba(132,204,22,0.39)] hover:shadow-[0_6px_20px_rgba(132,204,22,0.23)]">
+              {{ isLoading ? 'Verifying...' : 'Confirm' }}
+            </button>
+          </div>
+
+          <div class="text-center mt-6">
+            <button @click="switchView('login')" class="text-xs text-lime-600 dark:text-lime-400 font-semibold hover:underline">&larr; Back to sign in</button>
+          </div>
+        </div>
+
         <!-- Forgot Password -->
         <div v-else-if="view === 'forgot'" class="space-y-5">
           <div class="text-center space-y-1 mb-6">
@@ -177,7 +200,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'success']);
 
-const { loginUser, registerTenant, forgotPassword, resetPasswordRequest, tenants, isLoading, error } = useApi();
+const { loginUser, verifyLoginOtp, registerTenant, forgotPassword, resetPasswordRequest, tenants, isLoading, error } = useApi();
 
 const view = ref(props.initialView);
 const notice = ref(null);
@@ -192,6 +215,8 @@ const loginForm = ref({ email: '', password: '' });
 const signupForm = ref({ name: '', slug: '', adminName: '', adminEmail: '', adminPassword: '' });
 const forgotForm = ref({ email: '' });
 const resetForm = ref({ token: props.presetToken, email: props.presetEmail, newPassword: '' });
+const otpForm = ref({ pendingToken: '', code: '' });
+const otpEmail = ref('');
 
 watch(() => signupForm.value.name, (newName) => {
   if (newName) {
@@ -203,7 +228,20 @@ watch(() => signupForm.value.name, (newName) => {
 
 const handleLogin = async () => {
   try {
-    await loginUser(loginForm.value);
+    const data = await loginUser(loginForm.value);
+    if (data?.requiresOtp) {
+      otpForm.value = { pendingToken: data.pendingToken, code: '' };
+      otpEmail.value = data.email || loginForm.value.email;
+      switchView('otp');
+      return;
+    }
+    emit('success');
+  } catch {}
+};
+
+const handleVerifyOtp = async () => {
+  try {
+    await verifyLoginOtp(otpForm.value.pendingToken, otpForm.value.code.trim());
     emit('success');
   } catch {}
 };

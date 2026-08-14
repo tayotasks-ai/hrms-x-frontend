@@ -36,6 +36,23 @@
         >
           {{ submitting ? 'Saving…' : 'Update Password' }}
         </button>
+
+        <div class="pt-4 mt-1 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Email login code (2FA)</p>
+              <p class="text-[10px] text-zinc-500 mt-0.5">Require a code sent to your email each time you sign in.</p>
+            </div>
+            <button
+              @click="toggleTwoFactor"
+              :disabled="savingTwoFactor"
+              :class="[twoFactorEnabled ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full transition shrink-0 disabled:opacity-50 cursor-pointer']"
+            >
+              <span :class="[twoFactorEnabled ? 'translate-x-4' : 'translate-x-0.5', 'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform']"></span>
+            </button>
+          </div>
+          <p v-if="twoFactorError" class="text-[10px] text-red-500">{{ twoFactorError }}</p>
+        </div>
       </div>
     </div>
   </div>
@@ -48,15 +65,35 @@ import { useApi } from '../composables/useApi';
 
 const props = defineProps({
   isDefaultPassword: { type: Boolean, default: false },
+  initialTwoFactorEnabled: { type: Boolean, default: false },
 });
-const emit = defineEmits(['close', 'changed']);
+const emit = defineEmits(['close', 'changed', 'twoFactorChanged']);
 
-const { changePassword } = useApi();
+const { changePassword, setTwoFactor } = useApi();
 
 const form = ref({ currentPassword: '', newPassword: '' });
 const submitting = ref(false);
 const error = ref(null);
 const success = ref(false);
+
+const twoFactorEnabled = ref(props.initialTwoFactorEnabled);
+const savingTwoFactor = ref(false);
+const twoFactorError = ref(null);
+
+const toggleTwoFactor = async () => {
+  const next = !twoFactorEnabled.value;
+  savingTwoFactor.value = true;
+  twoFactorError.value = null;
+  try {
+    await setTwoFactor(next);
+    twoFactorEnabled.value = next;
+    emit('twoFactorChanged', next);
+  } catch (err) {
+    twoFactorError.value = err.response?.data?.message || 'Failed to update.';
+  } finally {
+    savingTwoFactor.value = false;
+  }
+};
 
 const submit = async () => {
   error.value = null;

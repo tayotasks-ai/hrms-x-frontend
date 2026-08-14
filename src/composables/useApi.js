@@ -96,6 +96,20 @@ export function useApi() {
     isLoading.value = true;
     return call(async () => {
       const r = await api.post('/auth/login', credentials);
+      // If the account has email OTP 2FA enabled, the server returns
+      // { requiresOtp, pendingToken, email } instead of a real session —
+      // don't treat that as a logged-in session yet.
+      if (r.data.data?.requiresOtp) return r.data.data;
+      setAuthUser(r.data.data);
+      setActiveTenant(r.data.data.tenant);
+      return r.data.data;
+    }).finally(() => { isLoading.value = false; });
+  };
+
+  const verifyLoginOtp = async (pendingToken, code) => {
+    isLoading.value = true;
+    return call(async () => {
+      const r = await api.post('/auth/verify-otp', { pendingToken, code });
       setAuthUser(r.data.data);
       setActiveTenant(r.data.data.tenant);
       return r.data.data;
@@ -105,6 +119,7 @@ export function useApi() {
   const changePassword = (d) => call(async () => (await api.put('/auth/change-password', d)).data);
   const forgotPassword = (email) => call(async () => (await api.post('/auth/forgot-password', { email })).data);
   const resetPasswordRequest = (d) => call(async () => (await api.post('/auth/reset-password', d)).data);
+  const setTwoFactor = (enabled) => call(async () => (await api.put('/auth/2fa', { enabled })).data);
 
   // ── Dashboard ──────────────────────────────────────────────────────────────
   const getDashboardStats = () => call(async () => (await api.get('/dashboard/stats')).data.data);
@@ -141,6 +156,7 @@ export function useApi() {
   const getPayslips         = () => call(async () => (await api.get('/payslips')).data.data);
   const createPayslip       = (d) => call(async () => (await api.post('/payslips', d)).data.data);
   const downloadPayslipPdf  = (id) => call(async () => (await api.get(`/payslips/${id}/pdf`, { responseType: 'blob' })).data);
+  const downloadRemittanceReport = (period, type) => call(async () => (await api.get('/payslips/remittance', { params: { period, type }, responseType: 'blob' })).data);
   const payPayslip          = (id) => call(async () => (await api.post(`/payslips/${id}/pay`)).data);
   const payPayslipBatch     = (payslipIds) => call(async () => (await api.post('/payslips/pay-batch', { payslipIds })).data);
   const finalizePayslipPayment = (id, otp) => call(async () => (await api.post(`/payslips/${id}/pay/finalize`, { otp })).data);
@@ -261,19 +277,24 @@ export function useApi() {
   // ── Audit Log ─────────────────────────────────────────────────────────────
   const getAuditLog = () => call(async () => (await api.get('/audit-log')).data.data);
 
+  // ── Notifications ─────────────────────────────────────────────────────────
+  const getNotifications        = () => call(async () => (await api.get('/notifications')).data.data);
+  const markNotificationRead    = (id) => call(async () => (await api.put(`/notifications/${id}/read`)).data.data);
+  const markAllNotificationsRead = () => call(async () => (await api.put('/notifications/read-all')).data);
+
   return {
     // State
     tenants, activeTenant, authUser, apiHealth, isLoading, error,
     // Auth & tenant
     setActiveTenant, setAuthUser, restoreAuth, checkHealth, fetchTenants,
-    registerTenant, loginUser, changePassword, forgotPassword, resetPasswordRequest,
+    registerTenant, loginUser, verifyLoginOtp, changePassword, forgotPassword, resetPasswordRequest, setTwoFactor,
     // Modules
     getDashboardStats,
     getShoutouts, createShoutout, reactToShoutout,
     getEmployees, getDirectoryLite, getMe, getEmployee, createEmployee, bulkCreateEmployees, updateEmployee, updateEmployeeManager,
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getLeaves, createLeave, updateLeaveStatus, getLeavePolicy, updateLeavePolicy,
-    getPayslips, createPayslip, downloadPayslipPdf, payPayslip, payPayslipBatch, finalizePayslipPayment,
+    getPayslips, createPayslip, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
     getPaymentSettings, connectPaystack, disconnectPaystack,
     getBanks, verifyBankAccount,
     getPerformanceCycles, createPerformanceCycle, updatePerformanceCycle,
@@ -295,5 +316,6 @@ export function useApi() {
     getTrainingCourses, createTrainingCourse, enrollEmployee, updateEnrollmentStatus,
     getMyAttendance, clockIn, clockOut, getAttendanceToday,
     getAuditLog,
+    getNotifications, markNotificationRead, markAllNotificationsRead,
   };
 }
