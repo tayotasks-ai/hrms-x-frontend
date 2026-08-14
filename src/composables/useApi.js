@@ -165,6 +165,12 @@ export function useApi() {
   const getPaymentSettings  = () => call(async () => (await api.get('/payment-settings')).data.data);
   const connectPaystack     = (secretKey) => call(async () => (await api.post('/payment-settings/paystack/connect', { secretKey })).data);
   const disconnectPaystack  = () => call(async () => (await api.delete('/payment-settings/paystack')).data);
+  const setDualApproval     = (enabled) => call(async () => (await api.put('/payment-settings/dual-approval', { enabled })).data);
+
+  // ── Payroll Approvals (maker-checker) ─────────────────────────────────────
+  const getPayrollApprovals     = (status) => call(async () => (await api.get('/payroll-approvals', { params: status ? { status } : {} })).data.data);
+  const approvePayrollApproval  = (id) => call(async () => (await api.post(`/payroll-approvals/${id}/approve`)).data);
+  const rejectPayrollApproval   = (id, reason) => call(async () => (await api.post(`/payroll-approvals/${id}/reject`, { reason })).data);
 
   // ── Banks / bank account verification ─────────────────────────────────────
   // NOTE: These intentionally bypass the global call() wrapper so that a
@@ -282,6 +288,21 @@ export function useApi() {
   const markNotificationRead    = (id) => call(async () => (await api.put(`/notifications/${id}/read`)).data.data);
   const markAllNotificationsRead = () => call(async () => (await api.put('/notifications/read-all')).data);
 
+  // ── Privacy consent (NDPA) ───────────────────────────────────────────────
+  const setPrivacyConsent = (version) => call(async () => (await api.put('/auth/consent', { version })).data.data);
+
+  // ── Data Subject Requests (NDPA access/correction/erasure) ─────────────────
+  const exportMyData        = () => call(async () => (await api.get('/employees/me/data-export')).data.data);
+  const createDsarRequest   = (d) => call(async () => (await api.post('/dsar-requests', d)).data.data);
+  const getDsarRequests     = () => call(async () => (await api.get('/dsar-requests')).data.data);
+  const updateDsarRequest   = (id, d) => call(async () => (await api.put(`/dsar-requests/${id}`, d)).data.data);
+
+  // ── Data Retention ──────────────────────────────────────────────────────
+  const getRetentionSettings    = () => call(async () => (await api.get('/retention-settings')).data.data);
+  const updateRetentionSettings = (offboardedRetentionYears) => call(async () => (await api.put('/retention-settings', { offboardedRetentionYears })).data.data);
+  const getRetentionCandidates  = () => call(async () => (await api.get('/retention/candidates')).data.data);
+  const anonymizeEmployee       = (id) => call(async () => (await api.post(`/employees/${id}/anonymize`)).data);
+
   return {
     // State
     tenants, activeTenant, authUser, apiHealth, isLoading, error,
@@ -295,7 +316,8 @@ export function useApi() {
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getLeaves, createLeave, updateLeaveStatus, getLeavePolicy, updateLeavePolicy,
     getPayslips, createPayslip, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
-    getPaymentSettings, connectPaystack, disconnectPaystack,
+    getPaymentSettings, connectPaystack, disconnectPaystack, setDualApproval,
+    getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval,
     getBanks, verifyBankAccount,
     getPerformanceCycles, createPerformanceCycle, updatePerformanceCycle,
     getKpis, createKpi, updateKpi, submitKpiSelfReview, submitKpiManagerReview, getKpiSummary,
@@ -317,5 +339,8 @@ export function useApi() {
     getMyAttendance, clockIn, clockOut, getAttendanceToday,
     getAuditLog,
     getNotifications, markNotificationRead, markAllNotificationsRead,
+    exportMyData, createDsarRequest, getDsarRequests, updateDsarRequest,
+    setPrivacyConsent,
+    getRetentionSettings, updateRetentionSettings, getRetentionCandidates, anonymizeEmployee,
   };
 }

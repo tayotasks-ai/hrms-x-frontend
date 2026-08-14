@@ -72,6 +72,14 @@
         @twoFactorChanged="handleTwoFactorChanged"
       />
 
+      <!-- Blocking until accepted — no close button. Only applies to Employee
+           accounts; re-shows automatically if PRIVACY_NOTICE_VERSION is bumped. -->
+      <PrivacyConsentModal
+        v-if="needsPrivacyConsent"
+        :version="PRIVACY_NOTICE_VERSION"
+        @accepted="handlePrivacyConsentAccepted"
+      />
+
       <!-- Content area -->
       <div class="flex-1 p-6 overflow-y-auto max-w-7xl w-full mx-auto">
         <!-- Error banner -->
@@ -299,6 +307,7 @@ import Sidebar from './components/Sidebar.vue';
 import LandingPage from './components/LandingPage.vue';
 import AuthModal from './components/AuthModal.vue';
 import ChangePasswordModal from './components/ChangePasswordModal.vue';
+import PrivacyConsentModal from './components/PrivacyConsentModal.vue';
 import StatsGrid from './components/StatsGrid.vue';
 import EmployeeDashboard from './components/EmployeeDashboard.vue';
 import EmployeeProfile from './components/EmployeeProfile.vue';
@@ -487,6 +496,24 @@ const handlePasswordChanged = () => {
 const handleTwoFactorChanged = (enabled) => {
   if (authUser.value) {
     setAuthUser({ ...authUser.value, twoFactorEnabled: enabled });
+  }
+};
+
+// ── Privacy notice acceptance (NDPA) ────────────────────────────────────────
+// Bump this to force every employee to re-accept (e.g. after the notice text
+// changes materially) — anyone whose stored version doesn't match sees the
+// modal again on their next load, even if they'd already accepted before.
+const PRIVACY_NOTICE_VERSION = 'v1-2026-08';
+
+const needsPrivacyConsent = computed(() => {
+  if (authUser.value?.role !== 'Employee') return false;
+  const consent = authUser.value?.privacyConsent;
+  return !consent?.accepted || consent.version !== PRIVACY_NOTICE_VERSION;
+});
+
+const handlePrivacyConsentAccepted = (privacyConsent) => {
+  if (authUser.value) {
+    setAuthUser({ ...authUser.value, privacyConsent });
   }
 };
 

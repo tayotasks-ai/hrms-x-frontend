@@ -157,22 +157,31 @@
         <!-- 3. Regulatory IDs -->
         <div class="space-y-4">
           <h4 class="text-xs font-mono font-bold text-zinc-500 uppercase tracking-widest border-b border-zinc-200 dark:border-zinc-800 pb-2">Regulatory IDs</h4>
+          <p class="text-[10px] text-zinc-500 -mt-1">Stored encrypted. Leave a field blank to keep the saved value — type a new one to replace it.</p>
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
               <label class="text-[10px] uppercase tracking-wider text-zinc-500">BVN</label>
-              <input v-model="form.regulatory.bvn" type="text" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
+              <input v-model="form.regulatory.bvn" type="text" :placeholder="employee.regulatory?.bvnMasked || 'Not set'" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
             </div>
             <div class="space-y-1">
               <label class="text-[10px] uppercase tracking-wider text-zinc-500">NIN</label>
-              <input v-model="form.regulatory.nin" type="text" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
+              <input v-model="form.regulatory.nin" type="text" :placeholder="employee.regulatory?.ninMasked || 'Not set'" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
             </div>
             <div class="space-y-1">
               <label class="text-[10px] uppercase tracking-wider text-zinc-500">TIN</label>
-              <input v-model="form.regulatory.tin" type="text" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
+              <input v-model="form.regulatory.tin" type="text" :placeholder="employee.regulatory?.tinMasked || 'Not set'" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
             </div>
             <div class="space-y-1">
               <label class="text-[10px] uppercase tracking-wider text-zinc-500">PFA Number</label>
-              <input v-model="form.regulatory.pfa" type="text" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
+              <input v-model="form.regulatory.pfa" type="text" :placeholder="employee.regulatory?.pfaMasked || 'Not set'" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-wider text-zinc-500">RSA/PIN (Pension)</label>
+              <input v-model="form.regulatory.rsa" type="text" :placeholder="employee.regulatory?.rsaMasked || 'Not set'" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-wider text-zinc-500">NHF Number</label>
+              <input v-model="form.regulatory.nhf" type="text" :placeholder="employee.regulatory?.nhfMasked || 'Not set'" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 font-mono focus:border-lime-500 outline-none transition" />
             </div>
           </div>
         </div>
@@ -187,7 +196,7 @@
           <BadgeCheck class="w-4 h-4 text-lime-600 dark:text-lime-400 shrink-0" />
           <div>
             <p class="text-lime-700 dark:text-lime-400 font-semibold">Verified for payroll payment</p>
-            <p class="text-zinc-600 dark:text-zinc-400 mt-0.5">{{ employee.bankDetails.accountName }} &bull; {{ employee.bankDetails.bankName }} &bull; {{ maskAccount(employee.bankDetails.accountNumber) }}</p>
+            <p class="text-zinc-600 dark:text-zinc-400 mt-0.5">{{ employee.bankDetails.accountName }} &bull; {{ employee.bankDetails.bankName }} &bull; {{ employee.bankDetails.accountNumberMasked || '••••' }}</p>
           </div>
         </div>
         <div v-else class="p-3 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded text-xs text-zinc-600 dark:text-zinc-400">
@@ -338,11 +347,6 @@ const verifyAccount = async () => {
   }
 };
 
-const maskAccount = (num) => {
-  if (!num) return '';
-  return num.length > 4 ? `••••${num.slice(-4)}` : num;
-};
-
 const form = ref({
   email: '',
   role: '',
@@ -375,18 +379,22 @@ const initForm = () => {
       state: e.address?.state || '',
       country: e.address?.country || ''
     },
-    regulatory: {
-      bvn: e.regulatory?.bvn || '',
-      nin: e.regulatory?.nin || '',
-      tin: e.regulatory?.tin || '',
-      pfa: e.regulatory?.pfa || ''
-    }
+    // Regulatory IDs are encrypted at rest and never sent back to the
+    // client in full — only a masked last-4 (employee.regulatory.*Masked),
+    // shown as the input's placeholder below. These start blank: leaving
+    // them blank on save means "keep what's already stored," typing a new
+    // value means "replace it." Never pre-fill with the masked string —
+    // submitting that back as-is would overwrite the real value with
+    // literal bullet characters.
+    regulatory: { bvn: '', nin: '', tin: '', pfa: '', rsa: '', nhf: '', lgaOfOrigin: e.regulatory?.lgaOfOrigin || '' }
   };
   // Removed errorMsg and successMsg clears so they don't disappear when props update
 
+  // Same blank-means-unchanged treatment for the account number — the
+  // verified banner above already shows the masked value.
   bankForm.value = {
     bankCode: e.bankDetails?.bankCode || '',
-    accountNumber: e.bankDetails?.accountNumber || '',
+    accountNumber: '',
   };
 };
 

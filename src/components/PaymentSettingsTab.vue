@@ -64,6 +64,22 @@
         <p>HR Admins can now pay employees from the <strong>Payroll &amp; Payslips</strong> tab, provided each employee has a verified bank account.</p>
       </div>
     </div>
+
+    <div v-if="settings?.paystack?.connected" class="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Require dual approval for payroll</p>
+          <p class="text-xs text-zinc-500 mt-1">When on, Pay Now / Pay Selected files a request instead of paying immediately — a <em>different</em> HR admin must approve it from the Payroll Approvals queue before any transfer is sent. Needs at least two HR admin accounts, or payroll runs will have nobody to approve them.</p>
+        </div>
+        <button
+          @click="toggleDualApproval"
+          :disabled="savingDualApproval"
+          :class="[settings?.paystack?.requireDualApproval ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full transition shrink-0 disabled:opacity-50 cursor-pointer']"
+        >
+          <span :class="[settings?.paystack?.requireDualApproval ? 'translate-x-4' : 'translate-x-0.5', 'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform']"></span>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -72,7 +88,7 @@ import { ref, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
 import { CreditCard, Link as LinkIcon } from 'lucide-vue-next';
 
-const { getPaymentSettings, connectPaystack, disconnectPaystack } = useApi();
+const { getPaymentSettings, connectPaystack, disconnectPaystack, setDualApproval } = useApi();
 
 const settings = ref(null);
 const loading = ref(true);
@@ -80,6 +96,7 @@ const busy = ref(false);
 const secretKey = ref('');
 const errorMsg = ref(null);
 const successMsg = ref(null);
+const savingDualApproval = ref(false);
 
 const load = async () => {
   loading.value = true;
@@ -121,6 +138,20 @@ const disconnect = async () => {
     errorMsg.value = err.response?.data?.message || 'Failed to disconnect.';
   } finally {
     busy.value = false;
+  }
+};
+
+const toggleDualApproval = async () => {
+  const next = !settings.value?.paystack?.requireDualApproval;
+  savingDualApproval.value = true;
+  errorMsg.value = null;
+  try {
+    await setDualApproval(next);
+    settings.value.paystack.requireDualApproval = next;
+  } catch (err) {
+    errorMsg.value = err.response?.data?.message || 'Failed to update dual approval setting.';
+  } finally {
+    savingDualApproval.value = false;
   }
 };
 

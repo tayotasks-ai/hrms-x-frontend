@@ -24,6 +24,14 @@
           <span>Export CSV</span>
         </button>
         <button
+          @click="openApprovalsModal"
+          class="relative flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
+        >
+          <ShieldCheck class="w-4 h-4" />
+          <span>Payroll Approvals</span>
+          <span v-if="pendingApprovalCount > 0" class="absolute -top-1.5 -right-1.5 bg-amber-500 text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{{ pendingApprovalCount }}</span>
+        </button>
+        <button
           @click="showRemittanceModal = true"
           class="flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
         >
@@ -42,6 +50,9 @@
 
     <div v-if="paymentError" class="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
       {{ paymentError }}
+    </div>
+    <div v-if="paymentInfo" class="p-3 bg-lime-50 dark:bg-lime-950/60 border border-lime-200 dark:border-lime-900 text-lime-700 dark:text-lime-400 rounded text-xs font-mono">
+      {{ paymentInfo }}
     </div>
 
     <!-- Payslip Directory -->
@@ -191,6 +202,88 @@
           >
             {{ otpSubmitting ? 'Confirming…' : 'Confirm' }}
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payroll Approvals (maker-checker) Modal -->
+    <div
+      v-if="showApprovalsModal"
+      class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      @click.self="closeApprovalsModal"
+    >
+      <div class="w-full max-w-2xl max-h-[85vh] bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg flex flex-col shadow-2xl overflow-hidden">
+        <div class="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-2">
+            <ShieldCheck class="w-4 h-4 text-lime-600 dark:text-lime-400" />
+            <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Payroll Approvals</h3>
+          </div>
+          <button @click="closeApprovalsModal" class="p-1 hover:bg-zinc-50 dark:bg-zinc-900 rounded text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:text-zinc-200 transition">
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 space-y-3">
+          <p class="text-xs text-zinc-500">Payroll runs submitted while dual approval is on. A different HR admin than the one who requested it must approve before Paystack is called.</p>
+
+          <div v-if="approvalsError" class="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
+            {{ approvalsError }}
+          </div>
+
+          <div v-if="approvalsLoading" class="py-10 text-center text-xs text-zinc-500">Loading…</div>
+
+          <div v-else-if="approvals.length === 0" class="flex flex-col items-center justify-center py-10 text-center">
+            <ShieldCheck class="w-8 h-8 text-zinc-300 dark:text-zinc-800 mb-2" />
+            <p class="text-xs text-zinc-500">No payroll approval requests yet.</p>
+          </div>
+
+          <div v-for="a in approvals" :key="a._id" class="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-2">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{{ formatCurrency(a.totalAmount) }} &bull; {{ a.payslipIds.length }} payslip{{ a.payslipIds.length === 1 ? '' : 's' }}{{ a.period ? ' — ' + a.period : '' }}</p>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Requested by {{ a.requestedBy.name }} &bull; {{ formatDate(a.requestedAt) }}</p>
+              </div>
+              <span :class="[
+                a.status === 'Approved' ? 'bg-lime-100 dark:bg-lime-950 text-lime-700 dark:text-lime-400 border-lime-200 dark:border-lime-900' :
+                a.status === 'Rejected' ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-900' :
+                'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900',
+                'px-2 py-0.5 text-[10px] font-mono uppercase font-semibold rounded border shrink-0'
+              ]">{{ a.status }}</span>
+            </div>
+
+            <p class="text-[11px] text-zinc-500">{{ a.payslipIds.map(p => p.employeeId?.name || 'Deleted Employee').join(', ') }}</p>
+
+            <p v-if="a.status === 'Rejected' && a.rejectionReason" class="text-[11px] text-rose-500">Reason: {{ a.rejectionReason }}</p>
+            <p v-if="a.status === 'Approved'" class="text-[11px] text-zinc-500">{{ (a.results || []).filter(r => r.ok).length }} of {{ (a.results || []).length }} payment(s) succeeded &bull; decided by {{ a.decidedBy?.name }}</p>
+
+            <div v-if="a.status === 'Pending'" class="flex items-center gap-2 pt-1">
+              <button
+                v-if="String(a.requestedBy.id) === String(authUser?._id)"
+                disabled
+                title="You initiated this run — a different HR admin must approve it."
+                class="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-600 px-3 py-1.5 rounded text-xs cursor-not-allowed"
+              >
+                <ShieldCheck class="w-3.5 h-3.5" />
+                <span>Awaiting another admin</span>
+              </button>
+              <button
+                v-else
+                @click="approveRequest(a._id)"
+                :disabled="decidingId === a._id"
+                class="flex items-center gap-1.5 bg-lime-500 text-black font-semibold px-3 py-1.5 rounded text-xs hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition disabled:opacity-50 cursor-pointer"
+              >
+                <ShieldCheck class="w-3.5 h-3.5" />
+                <span>{{ decidingId === a._id ? 'Approving…' : 'Approve & Pay' }}</span>
+              </button>
+              <button
+                @click="rejectRequest(a._id)"
+                :disabled="decidingId === a._id"
+                class="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50 cursor-pointer"
+              >
+                {{ String(a.requestedBy.id) === String(authUser?._id) ? 'Cancel' : 'Reject' }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -538,7 +631,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
 import { Eye, X, Receipt, Download, Banknote, ShieldCheck, FileSpreadsheet } from 'lucide-vue-next';
 import { estimatePayroll } from '../utils/payrollEstimate';
@@ -565,7 +658,10 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { createPayslip, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment } = useApi();
+const {
+  createPayslip, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
+  getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval,
+} = useApi();
 
 const showGenerateModal = ref(false);
 const showInvoiceModal = ref(false);
@@ -584,6 +680,67 @@ const otpValue = ref('');
 const otpError = ref(null);
 const otpSubmitting = ref(false);
 const otpQueue = ref([]); // payslip ids still awaiting OTP entry, processed one at a time
+const paymentInfo = ref(null);
+
+// ── Payroll Approvals (maker-checker) ────────────────────────────────────────
+const showApprovalsModal = ref(false);
+const approvals = ref([]);
+const approvalsLoading = ref(false);
+const approvalsError = ref(null);
+const decidingId = ref(null);
+const pendingApprovalCount = ref(0);
+
+const loadApprovals = async () => {
+  approvalsLoading.value = true;
+  approvalsError.value = null;
+  try {
+    approvals.value = await getPayrollApprovals();
+    pendingApprovalCount.value = approvals.value.filter(a => a.status === 'Pending').length;
+  } catch (err) {
+    approvalsError.value = err.response?.data?.message || err.message || 'Failed to load approvals.';
+  } finally {
+    approvalsLoading.value = false;
+  }
+};
+
+const openApprovalsModal = () => {
+  showApprovalsModal.value = true;
+  loadApprovals();
+};
+
+const closeApprovalsModal = () => { showApprovalsModal.value = false; };
+
+const approveRequest = async (id) => {
+  decidingId.value = id;
+  approvalsError.value = null;
+  try {
+    await approvePayrollApproval(id);
+    await loadApprovals();
+    emit('refresh');
+  } catch (err) {
+    approvalsError.value = err.response?.data?.message || err.message || 'Failed to approve.';
+  } finally {
+    decidingId.value = null;
+  }
+};
+
+const rejectRequest = async (id) => {
+  const reason = window.prompt('Reason for rejecting this payroll run (optional):') || '';
+  decidingId.value = id;
+  approvalsError.value = null;
+  try {
+    await rejectPayrollApproval(id, reason);
+    await loadApprovals();
+  } catch (err) {
+    approvalsError.value = err.response?.data?.message || err.message || 'Failed to reject.';
+  } finally {
+    decidingId.value = null;
+  }
+};
+
+onMounted(() => {
+  if (props.authUser?.role !== 'Employee') loadApprovals();
+});
 
 const paymentStatus = (slip) => slip.payment?.status || 'Unpaid';
 const isPayable = (slip) => ['Unpaid', 'Failed'].includes(paymentStatus(slip));
@@ -623,9 +780,15 @@ const queueOtpIfNeeded = (requiresOtp, payslipId) => {
 
 const payNow = async (slip) => {
   paymentError.value = null;
+  paymentInfo.value = null;
   payingIds.value = [...payingIds.value, slip._id];
   try {
     const res = await payPayslip(slip._id);
+    if (res.data?.requiresApproval) {
+      paymentInfo.value = res.message;
+      loadApprovals();
+      return;
+    }
     queueOtpIfNeeded(res.data?.requiresOtp, slip._id);
     emit('refresh');
   } catch (err) {
@@ -638,9 +801,16 @@ const payNow = async (slip) => {
 const payBatchNow = async () => {
   if (selectedIds.value.length === 0) return;
   paymentError.value = null;
+  paymentInfo.value = null;
   batchPaying.value = true;
   try {
     const res = await payPayslipBatch(selectedIds.value);
+    if (res.data?.requiresApproval) {
+      paymentInfo.value = res.message;
+      selectedIds.value = [];
+      loadApprovals();
+      return;
+    }
     for (const r of res.data || []) {
       if (r.requiresOtp) queueOtpIfNeeded(true, r.payslipId);
     }

@@ -162,12 +162,90 @@
         </div>
       </div>
     </div>
+
+    <!-- My Data & Privacy -->
+    <div class="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="font-display font-bold text-sm text-zinc-800 dark:text-zinc-200">My Data &amp; Privacy</h3>
+        <ShieldCheck class="w-4 h-4 text-zinc-400" />
+      </div>
+      <p class="text-xs text-zinc-500 mb-4">Download everything this system holds about you, or ask HR to correct or delete your data.</p>
+
+      <p v-if="dsarMessage" class="text-xs text-lime-600 dark:text-lime-400 mb-3">{{ dsarMessage }}</p>
+      <p v-if="dsarError" class="text-xs text-rose-500 mb-3">{{ dsarError }}</p>
+
+      <div class="flex flex-wrap gap-2">
+        <button
+          @click="handleExportData"
+          :disabled="exportingData"
+          class="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-3 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50 cursor-pointer"
+        >
+          <Download class="w-3.5 h-3.5" />
+          <span>{{ exportingData ? 'Preparing…' : 'Download My Data' }}</span>
+        </button>
+        <button
+          @click="showDsarModal = true"
+          class="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-3 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+        >
+          <FileEdit class="w-3.5 h-3.5" />
+          <span>Request Correction or Deletion</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- DSAR Request Modal -->
+    <div
+      v-if="showDsarModal"
+      class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      @click.self="closeDsarModal"
+    >
+      <div class="w-full max-w-sm bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-2xl overflow-hidden">
+        <div class="h-14 px-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+          <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Data Request</h3>
+          <button @click="closeDsarModal" class="p-1 hover:bg-zinc-50 dark:bg-zinc-900 rounded text-zinc-500 transition">
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+        <div class="p-5 space-y-3">
+          <div v-if="dsarFormError" class="p-2.5 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs">
+            {{ dsarFormError }}
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Type</label>
+            <select v-model="dsarForm.type" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition">
+              <option value="Correction">Correct something in my record</option>
+              <option value="Erasure">Delete my data</option>
+              <option value="Access">Something else about my data</option>
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Details</label>
+            <textarea
+              v-model="dsarForm.details"
+              rows="3"
+              placeholder="What would you like corrected, or why are you requesting this?"
+              class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition resize-none"
+            ></textarea>
+          </div>
+        </div>
+        <div class="h-16 px-5 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-end gap-2">
+          <button @click="closeDsarModal" class="px-3 py-1.5 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition">Cancel</button>
+          <button
+            @click="submitDsarRequest"
+            :disabled="submittingDsar"
+            class="px-4 py-1.5 bg-lime-500 text-black font-semibold rounded text-sm hover:bg-lime-600 dark:bg-lime-400 transition disabled:opacity-50"
+          >
+            {{ submittingDsar ? 'Submitting…' : 'Submit Request' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { CalendarOff, CreditCard, LifeBuoy, FileText, Briefcase, BookOpen, Target, Clock, Sparkles, Timer } from 'lucide-vue-next';
+import { CalendarOff, CreditCard, LifeBuoy, FileText, Briefcase, BookOpen, Target, Clock, Sparkles, Timer, ShieldCheck, Download, FileEdit, X } from 'lucide-vue-next';
 import ShoutoutsWidget from './ShoutoutsWidget.vue';
 import { useApi } from '../composables/useApi';
 
@@ -258,5 +336,63 @@ const handleClockOut = async () => {
 const formatTime = (dateStr) => {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+};
+
+// ── My Data & Privacy (NDPA data subject requests) ──────────────────────────
+const { exportMyData, createDsarRequest } = useApi();
+
+const exportingData = ref(false);
+const dsarMessage = ref(null);
+const dsarError = ref(null);
+
+const handleExportData = async () => {
+  exportingData.value = true;
+  dsarMessage.value = null;
+  dsarError.value = null;
+  try {
+    const data = await exportMyData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `my-data-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    dsarError.value = err.response?.data?.message || err.message || 'Could not export your data.';
+  } finally {
+    exportingData.value = false;
+  }
+};
+
+const showDsarModal = ref(false);
+const dsarForm = ref({ type: 'Correction', details: '' });
+const dsarFormError = ref(null);
+const submittingDsar = ref(false);
+
+const closeDsarModal = () => {
+  showDsarModal.value = false;
+  dsarForm.value = { type: 'Correction', details: '' };
+  dsarFormError.value = null;
+};
+
+const submitDsarRequest = async () => {
+  if (!dsarForm.value.details.trim()) {
+    dsarFormError.value = 'Please add a few details so HR knows what you need.';
+    return;
+  }
+  submittingDsar.value = true;
+  dsarFormError.value = null;
+  try {
+    await createDsarRequest({ type: dsarForm.value.type, details: dsarForm.value.details.trim() });
+    dsarMessage.value = 'Request submitted — HR will follow up.';
+    closeDsarModal();
+  } catch (err) {
+    dsarFormError.value = err.response?.data?.message || err.message || 'Failed to submit request.';
+  } finally {
+    submittingDsar.value = false;
+  }
 };
 </script>
