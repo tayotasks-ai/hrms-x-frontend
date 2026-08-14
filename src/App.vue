@@ -113,6 +113,12 @@
             @refresh="loadAllData(true)"
           />
 
+          <!-- Attendance (HR only) -->
+          <AttendanceTab
+            v-else-if="activeTab === 'attendance'"
+            :employees="employees"
+          />
+
           <!-- Payroll -->
           <PayrollTab
             v-else-if="activeTab === 'payroll'"
@@ -286,6 +292,7 @@ import InternalJobsTab from './components/InternalJobsTab.vue';
 import TrainingTab from './components/TrainingTab.vue';
 import OrgTab from './components/OrgTab.vue';
 import DepartmentsTab from './components/DepartmentsTab.vue';
+import AttendanceTab from './components/AttendanceTab.vue';
 
 const {
   tenants, activeTenant, authUser, apiHealth, isLoading, error,
@@ -336,7 +343,7 @@ const isHR = computed(() => authUser.value?.role !== 'Employee');
 const TAB_LABELS = {
   dashboard: 'Dashboard', profile: 'My Profile', employees: 'Employee Directory',
   onboarding: 'Onboarding', probation: 'Probation Tracker', leaves: 'Leave Management',
-  payroll: 'Payroll & Payslips', org: 'KPIs & Performance', requisitions: 'Requisitions',
+  attendance: 'Attendance', payroll: 'Payroll & Payslips', org: 'KPIs & Performance', requisitions: 'Requisitions',
   redeployments: 'Internal Transfers', exits: 'Exit & Offboarding', benefits: 'Benefits',
   trainings: 'Training', 'internal-jobs': 'Internal Jobs', disciplinary: 'Disciplinary',
   helpdesk: 'HR Helpdesk', documents: 'Documents', compliance: 'Compliance Calendar',

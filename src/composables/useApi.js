@@ -116,6 +116,7 @@ export function useApi() {
   const getMe               = () => call(async () => (await api.get('/employees/me')).data.data);
   const getEmployee         = (id) => call(async () => (await api.get(`/employees/${id}`)).data.data);
   const createEmployee      = (d) => call(async () => (await api.post('/employees', d)).data.data);
+  const bulkCreateEmployees = (rows) => call(async () => (await api.post('/employees/bulk', { employees: rows })).data.data);
   const updateEmployee      = (id, d) => call(async () => (await api.put(`/employees/${id}`, d)).data.data);
   const updateEmployeeManager = (id, managerId) => call(async () => (await api.put(`/employees/${id}/manager`, { managerId })).data.data);
 
@@ -133,6 +134,7 @@ export function useApi() {
   // ── Payslips ──────────────────────────────────────────────────────────────
   const getPayslips         = () => call(async () => (await api.get('/payslips')).data.data);
   const createPayslip       = (d) => call(async () => (await api.post('/payslips', d)).data.data);
+  const downloadPayslipPdf  = (id) => call(async () => (await api.get(`/payslips/${id}/pdf`, { responseType: 'blob' })).data);
 
   // ── Performance Cycles ────────────────────────────────────────────────────
   const getPerformanceCycles  = () => call(async () => (await api.get('/performance-cycles')).data.data);
@@ -227,6 +229,12 @@ export function useApi() {
   const enrollEmployee          = (id, d) => call(async () => (await api.post(`/trainings/${id}/enroll`, d)).data.data);
   const updateEnrollmentStatus  = (cId, eId, d) => call(async () => (await api.put(`/trainings/${cId}/enrollments/${eId}`, d)).data.data);
 
+  // ── Attendance ────────────────────────────────────────────────────────────
+  const getMyAttendance     = () => call(async () => (await api.get('/attendance/me')).data.data);
+  const clockIn             = (d) => call(async () => (await api.post('/attendance/clock-in', d)).data.data);
+  const clockOut            = (d) => call(async () => (await api.post('/attendance/clock-out', d)).data.data);
+  const getAttendanceToday  = () => call(async () => (await api.get('/attendance/today')).data.data);
+
   return {
     // State
     tenants, activeTenant, authUser, apiHealth, isLoading, error,
@@ -236,10 +244,10 @@ export function useApi() {
     // Modules
     getDashboardStats,
     getShoutouts, createShoutout, reactToShoutout,
-    getEmployees, getDirectoryLite, getMe, getEmployee, createEmployee, updateEmployee, updateEmployeeManager,
+    getEmployees, getDirectoryLite, getMe, getEmployee, createEmployee, bulkCreateEmployees, updateEmployee, updateEmployeeManager,
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getLeaves, createLeave, updateLeaveStatus,
-    getPayslips, createPayslip,
+    getPayslips, createPayslip, downloadPayslipPdf,
     getPerformanceCycles, createPerformanceCycle, updatePerformanceCycle,
     getKpis, createKpi, updateKpi, submitKpiSelfReview, submitKpiManagerReview, getKpiSummary,
     getCompliances, createCompliance, seedComplianceDefaults, updateCompliance,
@@ -257,5 +265,6 @@ export function useApi() {
     getPositions, createPosition, updatePosition,
     getInternalJobs, createInternalJob, applyForJob, referCandidate,
     getTrainingCourses, createTrainingCourse, enrollEmployee, updateEnrollmentStatus,
+    getMyAttendance, clockIn, clockOut, getAttendanceToday,
   };
 }

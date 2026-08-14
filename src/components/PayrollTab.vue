@@ -6,14 +6,22 @@
         <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Payroll & Compensation</h3>
         <p class="text-xs text-zinc-500 mt-0.5">Process salaries, log deductions/allowances, and generate employee payslips.</p>
       </div>
-      <button 
-        v-if="authUser?.role !== 'Employee'"
-        @click="showGenerateModal = true"
-        class="w-full sm:w-auto flex items-center justify-center gap-2 bg-lime-500 text-black font-semibold px-4 py-2 rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer"
-      >
-        <Receipt class="w-4 h-4" />
-        <span>Process Payroll</span>
-      </button>
+      <div v-if="authUser?.role !== 'Employee'" class="w-full sm:w-auto flex items-center gap-2">
+        <button
+          @click="exportPayrollCsv"
+          class="flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
+        >
+          <Download class="w-4 h-4" />
+          <span>Export CSV</span>
+        </button>
+        <button
+          @click="showGenerateModal = true"
+          class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-lime-500 text-black font-semibold px-4 py-2 rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer"
+        >
+          <Receipt class="w-4 h-4" />
+          <span>Process Payroll</span>
+        </button>
+      </div>
     </div>
 
     <!-- Payslip Directory -->
@@ -56,7 +64,7 @@
               <td class="py-4 px-6 text-zinc-700 dark:text-zinc-300 font-medium">{{ slip.period }}</td>
               <td class="py-4 px-6 text-zinc-600 dark:text-zinc-400 font-mono">{{ formatCurrency(slip.basicSalary) }}</td>
               <td class="py-4 px-6 text-emerald-400 font-mono">+{{ formatCurrency(slip.allowances) }}</td>
-              <td class="py-4 px-6 text-rose-400 font-mono">-{{ formatCurrency(slip.deductions) }}</td>
+              <td class="py-4 px-6 text-rose-400 font-mono">-{{ formatCurrency(deductionsTotal(slip)) }}</td>
               <td class="py-4 px-6 font-semibold text-lime-600 dark:text-lime-400 font-mono">{{ formatCurrency(slip.netPay) }}</td>
               <td class="py-4 px-6">
                 <span :class="[
@@ -68,13 +76,23 @@
                 </span>
               </td>
               <td class="py-4 px-6 text-right">
-                <button 
-                  @click="openInvoice(slip)"
-                  class="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 px-2.5 py-1.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs transition active:scale-95 ml-auto cursor-pointer"
-                >
-                  <Eye class="w-3.5 h-3.5 text-zinc-500" />
-                  <span>View Payslip</span>
-                </button>
+                <div class="flex items-center justify-end gap-2">
+                  <button
+                    @click="openInvoice(slip)"
+                    class="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 px-2.5 py-1.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs transition active:scale-95 cursor-pointer"
+                  >
+                    <Eye class="w-3.5 h-3.5 text-zinc-500" />
+                    <span>View Payslip</span>
+                  </button>
+                  <button
+                    @click="downloadPdf(slip)"
+                    :disabled="downloadingPdf"
+                    class="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 p-1.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs transition active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Download PDF"
+                  >
+                    <Download class="w-3.5 h-3.5 text-zinc-500" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -137,11 +155,11 @@
             />
           </div>
 
-          <!-- Allowances & Deductions Grid -->
+          <!-- Allowances & Other Deductions Grid -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
               <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Allowances (₦)</label>
-              <input 
+              <input
                 v-model="form.allowances"
                 type="number"
                 min="0"
@@ -150,15 +168,27 @@
               />
             </div>
             <div class="space-y-1">
-              <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Deductions / Taxes (₦)</label>
-              <input 
-                v-model="form.deductions"
+              <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Other Deductions (₦)</label>
+              <input
+                v-model="form.otherDeductions"
                 type="number"
                 min="0"
                 placeholder="0"
                 class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-805 rounded text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-lime-500 transition font-mono"
               />
+              <p class="text-[10px] text-zinc-500">Loan repayments, union dues, etc. PAYE/Pension/NHF are calculated automatically.</p>
             </div>
+          </div>
+
+          <!-- Live Statutory Preview -->
+          <div v-if="preview" class="border border-zinc-200 dark:border-zinc-800 rounded bg-zinc-50 dark:bg-zinc-900/40 p-3 space-y-1.5">
+            <p class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Estimated Breakdown</p>
+            <div class="flex justify-between text-xs"><span class="text-zinc-500">Gross Pay</span><span class="font-mono text-zinc-700 dark:text-zinc-300">{{ formatCurrency(preview.grossPay) }}</span></div>
+            <div class="flex justify-between text-xs"><span class="text-zinc-500">PAYE</span><span class="font-mono text-rose-400">-{{ formatCurrency(preview.deductions.paye) }}</span></div>
+            <div class="flex justify-between text-xs"><span class="text-zinc-500">Pension (8%)</span><span class="font-mono text-rose-400">-{{ formatCurrency(preview.deductions.pension) }}</span></div>
+            <div class="flex justify-between text-xs"><span class="text-zinc-500">NHF (2.5%)</span><span class="font-mono text-rose-400">-{{ formatCurrency(preview.deductions.nhf) }}</span></div>
+            <div class="flex justify-between text-xs" v-if="preview.deductions.other > 0"><span class="text-zinc-500">Other</span><span class="font-mono text-rose-400">-{{ formatCurrency(preview.deductions.other) }}</span></div>
+            <div class="flex justify-between text-xs pt-1.5 border-t border-zinc-200 dark:border-zinc-800"><span class="font-semibold text-zinc-700 dark:text-zinc-300">Net Pay</span><span class="font-mono font-bold text-lime-600 dark:text-lime-400">{{ formatCurrency(preview.netPay) }}</span></div>
           </div>
 
           <!-- Status -->
@@ -297,12 +327,39 @@
               </div>
               
               <!-- Deductions -->
-              <div class="grid grid-cols-3 py-3 px-4" v-if="selectedSlip.deductions > 0">
-                <div class="text-zinc-700 dark:text-zinc-300 font-sans">Tax & Deductions</div>
+              <div class="grid grid-cols-3 py-3 px-4" v-if="selectedSlip.deductions?.paye > 0">
+                <div class="text-zinc-700 dark:text-zinc-300 font-sans">PAYE Tax</div>
                 <div class="text-right text-zinc-600">-</div>
-                <div class="text-right text-rose-400">-{{ formatCurrency(selectedSlip.deductions) }}</div>
+                <div class="text-right text-rose-400">-{{ formatCurrency(selectedSlip.deductions.paye) }}</div>
+              </div>
+              <div class="grid grid-cols-3 py-3 px-4" v-if="selectedSlip.deductions?.pension > 0">
+                <div class="text-zinc-700 dark:text-zinc-300 font-sans">Pension (8%)</div>
+                <div class="text-right text-zinc-600">-</div>
+                <div class="text-right text-rose-400">-{{ formatCurrency(selectedSlip.deductions.pension) }}</div>
+              </div>
+              <div class="grid grid-cols-3 py-3 px-4" v-if="selectedSlip.deductions?.nhf > 0">
+                <div class="text-zinc-700 dark:text-zinc-300 font-sans">NHF (2.5%)</div>
+                <div class="text-right text-zinc-600">-</div>
+                <div class="text-right text-rose-400">-{{ formatCurrency(selectedSlip.deductions.nhf) }}</div>
+              </div>
+              <div class="grid grid-cols-3 py-3 px-4" v-if="selectedSlip.deductions?.other > 0">
+                <div class="text-zinc-700 dark:text-zinc-300 font-sans">Other Deductions</div>
+                <div class="text-right text-zinc-600">-</div>
+                <div class="text-right text-rose-400">-{{ formatCurrency(selectedSlip.deductions.other) }}</div>
               </div>
             </div>
+          </div>
+
+          <!-- Download PDF -->
+          <div class="flex justify-end print:hidden">
+            <button
+              @click="downloadPdf(selectedSlip)"
+              :disabled="downloadingPdf"
+              class="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs transition disabled:opacity-50 cursor-pointer"
+            >
+              <Download class="w-3.5 h-3.5" />
+              <span>{{ downloadingPdf ? 'Preparing…' : 'Download PDF' }}</span>
+            </button>
           </div>
 
           <!-- Total Payroll Panel -->
@@ -330,7 +387,42 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Eye, Printer, X, Receipt } from 'lucide-vue-next';
+import { Eye, Printer, X, Receipt, Download } from 'lucide-vue-next';
+
+// Mirrors backend/utils/payrollCalc.js — Nigeria Tax Act 2025 (effective 1 Jan
+// 2026) PAYE bands, 8% pension on (basic+allowances), 2.5% NHF on basic.
+// This is a client-side preview only; the server always recomputes on submit.
+const PAYE_BANDS = [
+  { upTo: 800000, rate: 0 },
+  { upTo: 3000000, rate: 0.15 },
+  { upTo: 12000000, rate: 0.18 },
+  { upTo: 25000000, rate: 0.21 },
+  { upTo: 50000000, rate: 0.23 },
+  { upTo: Infinity, rate: 0.25 },
+];
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const annualPaye = (income) => {
+  let tax = 0, prevCap = 0;
+  const inc = Math.max(0, income || 0);
+  for (const band of PAYE_BANDS) {
+    if (inc <= prevCap) break;
+    tax += (Math.min(inc, band.upTo) - prevCap) * band.rate;
+    prevCap = band.upTo;
+  }
+  return tax;
+};
+const estimatePayroll = (basicSalary, allowances, otherDeductions) => {
+  const basic = Number(basicSalary) || 0;
+  const allow = Number(allowances) || 0;
+  const other = Number(otherDeductions) || 0;
+  const grossPay = basic + allow;
+  const pension = round2(grossPay * 0.08);
+  const nhf = round2(basic * 0.025);
+  const annualTaxable = Math.max(0, (grossPay - pension - nhf) * 12);
+  const paye = round2(annualPaye(annualTaxable) / 12);
+  const total = round2(paye + pension + nhf + other);
+  return { grossPay: round2(grossPay), deductions: { paye, pension, nhf, other: round2(other), total }, netPay: round2(grossPay - total) };
+};
 
 const props = defineProps({
   payslips: {
@@ -353,19 +445,20 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { createPayslip } = useApi();
+const { createPayslip, downloadPayslipPdf } = useApi();
 
 const showGenerateModal = ref(false);
 const showInvoiceModal = ref(false);
 const submitting = ref(false);
 const formError = ref(null);
 const selectedSlip = ref(null);
+const downloadingPdf = ref(false);
 
 const initialForm = {
   employeeId: '',
   period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
   allowances: '',
-  deductions: '',
+  otherDeductions: '',
   status: 'Paid'
 };
 
@@ -375,6 +468,18 @@ const form = ref({ ...initialForm });
 const activeEmployeesOnly = computed(() => {
   return props.employees.filter(emp => emp.status !== 'Offboarded');
 });
+
+// Live PAYE/pension/NHF preview as HR fills out the form
+const preview = computed(() => {
+  const emp = props.employees.find(e => e._id === form.value.employeeId);
+  if (!emp) return null;
+  return estimatePayroll(emp.salary, form.value.allowances, form.value.otherDeductions);
+});
+
+const deductionsTotal = (slip) => {
+  if (typeof slip.deductions === 'number') return slip.deductions; // legacy payslips
+  return slip.deductions?.total ?? 0;
+};
 
 const closeGenerateModal = () => {
   showGenerateModal.value = false;
@@ -410,10 +515,10 @@ const handleSubmit = async () => {
       employeeId: form.value.employeeId,
       period: form.value.period,
       allowances: form.value.allowances ? parseFloat(form.value.allowances) : 0,
-      deductions: form.value.deductions ? parseFloat(form.value.deductions) : 0,
+      otherDeductions: form.value.otherDeductions ? parseFloat(form.value.otherDeductions) : 0,
       status: form.value.status
     });
-    
+
     emit('refresh');
     closeGenerateModal();
   } catch (err) {
@@ -421,6 +526,54 @@ const handleSubmit = async () => {
   } finally {
     submitting.value = false;
   }
+};
+
+const downloadPdf = async (slip) => {
+  downloadingPdf.value = true;
+  try {
+    const blob = await downloadPayslipPdf(slip._id);
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Payslip-${(slip.employeeId?.name || 'Employee').replace(/\s+/g, '-')}-${slip.period.replace(/\s+/g, '-')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    formError.value = err.response?.data?.message || err.message || 'Failed to download PDF.';
+  } finally {
+    downloadingPdf.value = false;
+  }
+};
+
+// ── CSV export of the payroll register ──────────────────────────────────────
+const csvEscape = (val) => {
+  const s = String(val ?? '');
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+const exportPayrollCsv = () => {
+  const headers = ['Employee', 'Period', 'Basic Salary', 'Allowances', 'PAYE', 'Pension', 'NHF', 'Other Deductions', 'Net Pay', 'Status'];
+  const lines = [headers.join(',')];
+  for (const slip of props.payslips) {
+    const d = typeof slip.deductions === 'object' ? slip.deductions : {};
+    lines.push([
+      csvEscape(slip.employeeId?.name || 'Deleted Employee'), csvEscape(slip.period),
+      csvEscape(slip.basicSalary), csvEscape(slip.allowances),
+      csvEscape(d.paye || 0), csvEscape(d.pension || 0), csvEscape(d.nhf || 0), csvEscape(d.other || 0),
+      csvEscape(slip.netPay), csvEscape(slip.status),
+    ].join(','));
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `payroll-register-${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
 };
 
 // Formatting Utilities

@@ -19,8 +19,52 @@
       </div>
     </div>
 
+    <!-- Clock In / Out -->
+    <div class="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div :class="[
+          today?.clockOut?.at ? 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500' :
+          today?.clockIn?.at ? 'bg-lime-50 dark:bg-lime-950/50 text-lime-600 dark:text-lime-400' :
+          'bg-zinc-100 dark:bg-zinc-900 text-zinc-500',
+          'w-10 h-10 rounded-lg flex items-center justify-center shrink-0'
+        ]">
+          <Timer class="w-5 h-5" />
+        </div>
+        <div>
+          <p class="text-sm font-medium text-zinc-500">Today's Attendance</p>
+          <p v-if="today?.clockOut?.at" class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+            Clocked in {{ formatTime(today.clockIn.at) }} &middot; out {{ formatTime(today.clockOut.at) }}
+          </p>
+          <p v-else-if="today?.clockIn?.at" class="text-sm font-semibold text-lime-600 dark:text-lime-400">
+            Clocked in at {{ formatTime(today.clockIn.at) }}
+          </p>
+          <p v-else class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Not clocked in yet</p>
+          <p v-if="attendanceError" class="text-xs text-rose-500 mt-0.5">{{ attendanceError }}</p>
+        </div>
+      </div>
+      <button
+        v-if="!today?.clockIn?.at"
+        @click="handleClockIn"
+        :disabled="attendanceBusy"
+        class="w-full sm:w-auto flex items-center justify-center gap-2 bg-lime-500 text-black font-semibold px-4 py-2 rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
+      >
+        <Timer class="w-4 h-4" />
+        <span>{{ attendanceBusy ? 'Clocking in…' : 'Clock In' }}</span>
+      </button>
+      <button
+        v-else-if="!today?.clockOut?.at"
+        @click="handleClockOut"
+        :disabled="attendanceBusy"
+        class="w-full sm:w-auto flex items-center justify-center gap-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black font-semibold px-4 py-2 rounded text-sm hover:opacity-90 active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
+      >
+        <Timer class="w-4 h-4" />
+        <span>{{ attendanceBusy ? 'Clocking out…' : 'Clock Out' }}</span>
+      </button>
+      <span v-else class="text-xs font-mono text-zinc-500 uppercase tracking-wider">Day complete</span>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      
+
       <!-- Leave Balance Widget -->
       <div class="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
         <div class="flex justify-between items-start mb-4">
@@ -123,8 +167,9 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { CalendarOff, CreditCard, LifeBuoy, FileText, Briefcase, BookOpen, Target, Clock, Sparkles } from 'lucide-vue-next';
+import { CalendarOff, CreditCard, LifeBuoy, FileText, Briefcase, BookOpen, Target, Clock, Sparkles, Timer } from 'lucide-vue-next';
 import ShoutoutsWidget from './ShoutoutsWidget.vue';
+import { useApi } from '../composables/useApi';
 
 defineProps({
   authUser: {
@@ -134,7 +179,7 @@ defineProps({
   shoutouts: { type: Array, default: () => [] }
 });
 
-defineEmits(['navigate', 'refresh']);
+const emit = defineEmits(['navigate', 'refresh']);
 
 const currentTime = ref('');
 let timer;
@@ -146,9 +191,72 @@ const updateTime = () => {
 onMounted(() => {
   updateTime();
   timer = setInterval(updateTime, 60000);
+  loadToday();
 });
 
 onUnmounted(() => {
   clearInterval(timer);
 });
+
+// ── Clock In / Out ─────────────────────────────────────────────────────────
+const { getMyAttendance, clockIn, clockOut } = useApi();
+
+const today = ref(null);
+const attendanceBusy = ref(false);
+const attendanceError = ref(null);
+
+const todayStr = () => new Date().toISOString().split('T')[0];
+
+const loadToday = async () => {
+  try {
+    const records = await getMyAttendance();
+    today.value = records.find(r => r.date === todayStr()) || null;
+  } catch {
+    // Non-fatal — the widget just shows "Not clocked in yet"
+  }
+};
+
+// Best-effort browser geolocation. Attendance still works fine without it —
+// permission denial or an unsupported browser just means no location tag.
+const tryGetLocation = () => new Promise((resolve) => {
+  if (!navigator.geolocation) return resolve(null);
+  navigator.geolocation.getCurrentPosition(
+    (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+    () => resolve(null),
+    { timeout: 5000 }
+  );
+});
+
+const handleClockIn = async () => {
+  attendanceBusy.value = true;
+  attendanceError.value = null;
+  try {
+    const location = await tryGetLocation();
+    today.value = await clockIn({ location });
+    emit('refresh');
+  } catch (err) {
+    attendanceError.value = err.response?.data?.message || err.message || 'Failed to clock in.';
+  } finally {
+    attendanceBusy.value = false;
+  }
+};
+
+const handleClockOut = async () => {
+  attendanceBusy.value = true;
+  attendanceError.value = null;
+  try {
+    const location = await tryGetLocation();
+    today.value = await clockOut({ location });
+    emit('refresh');
+  } catch (err) {
+    attendanceError.value = err.response?.data?.message || err.message || 'Failed to clock out.';
+  } finally {
+    attendanceBusy.value = false;
+  }
+};
+
+const formatTime = (dateStr) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+};
 </script>

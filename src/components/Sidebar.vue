@@ -62,7 +62,7 @@ import {
   LayoutDashboard, Users, CalendarOff, CreditCard, Building2, FileText,
   CheckSquare, ShieldCheck, LogOut, ClipboardList, ArrowRightLeft,
   UserMinus, AlertOctagon, HeartPulse, LifeBuoy, Briefcase, Network,
-  BookOpen, UserCircle, GanttChartSquare, ScrollText
+  BookOpen, UserCircle, GanttChartSquare, ScrollText, Timer
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -85,6 +85,7 @@ const hrItems = [
   { id: 'exits',            label: 'Exit & Offboarding',  icon: UserMinus },
   { section: 'Operations' },
   { id: 'leaves',           label: 'Leave Management',    icon: CalendarOff },
+  { id: 'attendance',       label: 'Attendance',          icon: Timer },
   { id: 'payroll',          label: 'Payroll & Payslips',  icon: CreditCard },
   { id: 'requisitions',     label: 'Requisitions',        icon: ClipboardList },
   { id: 'benefits',         label: 'Benefits Admin',      icon: HeartPulse },
