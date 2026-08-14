@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-full overflow-hidden relative">
-    <div :class="[selectedEmployee ? 'w-full lg:w-1/2 xl:w-3/5' : 'w-full', 'space-y-6 transition-all duration-300 overflow-y-auto pr-2 pb-20']">
+    <div class="w-full space-y-6 overflow-y-auto pr-2 pb-20">
     <!-- Header Controls -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-950 p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg">
       <div class="relative w-full sm:w-72">
@@ -376,24 +376,12 @@
     </div>
 
     <!-- Profile Slide-over / Details View -->
-    <div 
-      v-if="selectedEmployee" 
-      class="hidden lg:block absolute right-0 top-0 bottom-0 w-1/2 xl:w-2/5 z-10"
+    <div
+      v-if="selectedEmployee"
+      class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-end z-50 transition-opacity"
+      @click.self="selectedEmployee = null"
     >
-      <EmployeeProfile
-        :employee="selectedEmployee"
-        :departments="departmentOptions"
-        @close="selectedEmployee = null"
-        @updated="handleProfileUpdate"
-      />
-    </div>
-
-    <!-- Mobile modal for profile -->
-    <div 
-      v-if="selectedEmployee" 
-      class="lg:hidden fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-end z-50"
-    >
-      <div class="w-full sm:w-96 h-full">
+      <div class="w-full sm:w-96 lg:w-[480px] xl:w-[560px] h-full">
         <EmployeeProfile
           :employee="selectedEmployee"
           :departments="departmentOptions"
