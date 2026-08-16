@@ -291,6 +291,13 @@ export function useApi() {
   const getMyActivity    = (days) => call(async () => (await api.get('/activity/me', { params: days ? { days } : {} })).data.data);
   const getTeamActivity  = (date) => call(async () => (await api.get('/activity/team', { params: date ? { date } : {} })).data.data);
 
+  // ── Monitoring (desktop agent — optional screenshot capture) ─────────────
+  const getMonitoringSettings    = () => call(async () => (await api.get('/monitoring/settings')).data.data);
+  const updateMonitoringSettings = (d) => call(async () => (await api.put('/monitoring/settings', d)).data);
+  const getScreenshots           = (params) => call(async () => (await api.get('/monitoring/screenshots', { params })).data.data);
+  const getScreenshotImageBlob   = (id) => call(async () => (await api.get(`/monitoring/screenshots/${id}/image`, { responseType: 'blob' })).data);
+  const deleteScreenshot         = (id) => call(async () => (await api.delete(`/monitoring/screenshots/${id}`)).data);
+
   // ── Notifications ─────────────────────────────────────────────────────────
   const getNotifications        = () => call(async () => (await api.get('/notifications')).data.data);
   const markNotificationRead    = (id) => call(async () => (await api.put(`/notifications/${id}/read`)).data.data);
@@ -347,6 +354,7 @@ export function useApi() {
     getMyAttendance, clockIn, clockOut, getAttendanceToday,
     getAuditLog,
     pingActivity, getMyActivity, getTeamActivity,
+    getMonitoringSettings, updateMonitoringSettings, getScreenshots, getScreenshotImageBlob, deleteScreenshot,
     getNotifications, markNotificationRead, markAllNotificationsRead,
     exportMyData, createDsarRequest, getDsarRequests, updateDsarRequest,
     setPrivacyConsent,

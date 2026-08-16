@@ -22,6 +22,12 @@
         Data Retention
         <span v-if="retentionCandidates.length > 0" class="ml-1 inline-flex items-center justify-center bg-amber-500 text-black text-[10px] font-bold rounded-full w-4 h-4">{{ retentionCandidates.length }}</span>
       </button>
+      <button
+        @click="openMonitoringView"
+        :class="[subView === 'monitoring' ? 'bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300', 'px-3 py-1.5 rounded text-xs font-semibold transition cursor-pointer']"
+      >
+        Monitoring
+      </button>
     </div>
 
     <template v-if="subView === 'calendar'">
@@ -131,7 +137,7 @@
     </template>
 
     <!-- Data Retention -->
-    <template v-else>
+    <template v-else-if="subView === 'retention'">
       <div>
         <h3 class="font-bold text-zinc-900 dark:text-zinc-50">Data Retention</h3>
         <p class="text-xs text-zinc-500 mt-0.5">Offboarded employees whose data has exceeded the retention window and is ready to be anonymized.</p>
@@ -199,6 +205,103 @@
         </table>
       </div>
     </template>
+
+    <!-- Monitoring (desktop agent — optional screenshot capture) -->
+    <template v-else-if="subView === 'monitoring'">
+      <div>
+        <h3 class="font-bold text-zinc-900 dark:text-zinc-50">Monitoring</h3>
+        <p class="text-xs text-zinc-500 mt-0.5">Controls for the HRMS X desktop agent's optional screenshot capture. Active/idle time tracking is always on and covered separately in the general privacy notice — this only affects screenshots.</p>
+      </div>
+
+      <div class="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-zinc-50 dark:bg-zinc-900/40 space-y-4">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Enable screenshot monitoring</p>
+            <p class="text-[11px] text-zinc-500 mt-0.5">Off by default. Even when on, each employee must separately consent inside the desktop agent before any screenshot is captured for them — this switch alone does not start capturing anything.</p>
+          </div>
+          <button
+            @click="toggleScreenshots"
+            :disabled="savingMonitoringSettings"
+            :class="[monitoringSettings.screenshotsEnabled ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'shrink-0 relative w-11 h-6 rounded-full transition disabled:opacity-50 cursor-pointer']"
+          >
+            <span :class="[monitoringSettings.screenshotsEnabled ? 'translate-x-5' : 'translate-x-0.5', 'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform']"></span>
+          </button>
+        </div>
+
+        <div v-if="monitoringSettings.screenshotsEnabled" class="flex items-center gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+          <label class="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Capture interval</label>
+          <input
+            v-model.number="intervalInput"
+            type="number"
+            min="5"
+            class="w-16 px-2 py-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-center text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition"
+          />
+          <span class="text-xs text-zinc-500">minutes</span>
+          <button
+            @click="saveInterval"
+            :disabled="savingMonitoringSettings || intervalInput === monitoringSettings.screenshotIntervalMinutes"
+            class="ml-auto px-3 py-1.5 bg-lime-500 text-black font-semibold rounded text-xs hover:bg-lime-600 dark:bg-lime-400 transition disabled:opacity-50 cursor-pointer"
+          >
+            {{ savingMonitoringSettings ? 'Saving…' : 'Save' }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="monitoringError" class="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
+        {{ monitoringError }}
+      </div>
+
+      <div>
+        <h4 class="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Captured screenshots</h4>
+
+        <div v-if="screenshotsLoading" class="py-10 text-center text-xs text-zinc-500">Loading…</div>
+
+        <div v-else-if="screenshots.length === 0" class="flex flex-col items-center justify-center py-16 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-900 text-center">
+          <CheckSquare class="w-10 h-10 text-zinc-300 dark:text-zinc-700 mb-3" />
+          <p class="text-sm font-semibold text-zinc-600 dark:text-zinc-400">No screenshots captured yet.</p>
+          <p class="text-xs text-zinc-400 mt-1">These only appear once an employee has installed the agent and consented.</p>
+        </div>
+
+        <div v-else class="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-zinc-50 dark:bg-zinc-900 text-zinc-500 text-[11px] font-mono uppercase tracking-wider">
+              <tr>
+                <th class="px-5 py-3">Employee</th>
+                <th class="px-5 py-3">Captured</th>
+                <th class="px-5 py-3">Size</th>
+                <th class="px-5 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-900">
+              <tr v-for="s in screenshots" :key="s._id" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition">
+                <td class="px-5 py-3 text-xs font-semibold text-zinc-900 dark:text-zinc-50">{{ s.employeeId?.name || 'Unknown' }}</td>
+                <td class="px-5 py-3 text-xs font-mono text-zinc-600 dark:text-zinc-400">{{ formatDateTime(s.takenAt) }}</td>
+                <td class="px-5 py-3 text-xs text-zinc-500">{{ formatBytes(s.sizeBytes) }}</td>
+                <td class="px-5 py-3 text-right space-x-2">
+                  <button @click="viewScreenshot(s)" class="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer">View</button>
+                  <button
+                    @click="handleDeleteScreenshot(s)"
+                    :disabled="deletingScreenshotId === s._id"
+                    class="px-3 py-1.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 rounded text-xs font-semibold hover:bg-rose-100 dark:hover:bg-rose-950 transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {{ deletingScreenshotId === s._id ? 'Deleting…' : 'Delete' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button
+          v-if="screenshots.length > 0 && screenshots.length < screenshotsTotal"
+          @click="loadMoreScreenshots"
+          :disabled="screenshotsLoading"
+          class="mt-3 w-full py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 rounded hover:bg-zinc-50 dark:hover:bg-zinc-900 transition cursor-pointer"
+        >
+          Load more
+        </button>
+      </div>
+    </template>
   </div>
 </template>
 <script setup>
@@ -209,7 +312,10 @@ import { useApi } from '../composables/useApi';
 defineProps({ compliances: { type: Array, default: () => [] } });
 const emit = defineEmits(['refresh']);
 
-const { getDsarRequests, updateDsarRequest, getRetentionSettings, updateRetentionSettings, getRetentionCandidates, anonymizeEmployee } = useApi();
+const {
+  getDsarRequests, updateDsarRequest, getRetentionSettings, updateRetentionSettings, getRetentionCandidates, anonymizeEmployee,
+  getMonitoringSettings, updateMonitoringSettings, getScreenshots, getScreenshotImageBlob, deleteScreenshot,
+} = useApi();
 
 const subView = ref('calendar');
 const dsarRequests = ref([]);
@@ -315,6 +421,109 @@ const handleAnonymize = async (candidate) => {
   } finally {
     anonymizingId.value = null;
   }
+};
+
+// ── Monitoring (desktop agent — optional screenshot capture) ────────────────
+const monitoringSettings = ref({ screenshotsEnabled: false, screenshotIntervalMinutes: 30 });
+const intervalInput = ref(30);
+const savingMonitoringSettings = ref(false);
+const monitoringError = ref(null);
+const screenshots = ref([]);
+const screenshotsTotal = ref(0);
+const screenshotsPage = ref(1);
+const screenshotsLoading = ref(false);
+const deletingScreenshotId = ref(null);
+
+const loadMonitoringSettings = async () => {
+  try {
+    monitoringSettings.value = await getMonitoringSettings();
+    intervalInput.value = monitoringSettings.value.screenshotIntervalMinutes;
+  } catch (err) {
+    monitoringError.value = err.response?.data?.message || err.message || 'Failed to load monitoring settings.';
+  }
+};
+
+const loadScreenshots = async (page = 1) => {
+  screenshotsLoading.value = true;
+  monitoringError.value = null;
+  try {
+    const result = await getScreenshots({ page, limit: 30 });
+    screenshots.value = page === 1 ? result.records : [...screenshots.value, ...result.records];
+    screenshotsTotal.value = result.total;
+    screenshotsPage.value = page;
+  } catch (err) {
+    monitoringError.value = err.response?.data?.message || err.message || 'Failed to load screenshots.';
+  } finally {
+    screenshotsLoading.value = false;
+  }
+};
+
+const loadMoreScreenshots = () => loadScreenshots(screenshotsPage.value + 1);
+
+const openMonitoringView = () => {
+  subView.value = 'monitoring';
+  loadMonitoringSettings();
+  loadScreenshots(1);
+};
+
+const toggleScreenshots = async () => {
+  savingMonitoringSettings.value = true;
+  monitoringError.value = null;
+  try {
+    await updateMonitoringSettings({ screenshotsEnabled: !monitoringSettings.value.screenshotsEnabled });
+    await loadMonitoringSettings();
+  } catch (err) {
+    monitoringError.value = err.response?.data?.message || err.message || 'Failed to update monitoring settings.';
+  } finally {
+    savingMonitoringSettings.value = false;
+  }
+};
+
+const saveInterval = async () => {
+  savingMonitoringSettings.value = true;
+  monitoringError.value = null;
+  try {
+    await updateMonitoringSettings({ screenshotIntervalMinutes: intervalInput.value });
+    await loadMonitoringSettings();
+  } catch (err) {
+    monitoringError.value = err.response?.data?.message || err.message || 'Failed to update the capture interval.';
+  } finally {
+    savingMonitoringSettings.value = false;
+  }
+};
+
+const viewScreenshot = async (screenshot) => {
+  try {
+    const blob = await getScreenshotImageBlob(screenshot._id);
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    // Give the new tab a moment to actually load the blob before revoking it.
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (err) {
+    monitoringError.value = err.response?.data?.message || err.message || 'Failed to load this screenshot.';
+  }
+};
+
+const handleDeleteScreenshot = async (screenshot) => {
+  if (!window.confirm('Delete this screenshot? This cannot be undone.')) return;
+  deletingScreenshotId.value = screenshot._id;
+  monitoringError.value = null;
+  try {
+    await deleteScreenshot(screenshot._id);
+    screenshots.value = screenshots.value.filter(s => s._id !== screenshot._id);
+    screenshotsTotal.value = Math.max(screenshotsTotal.value - 1, 0);
+  } catch (err) {
+    monitoringError.value = err.response?.data?.message || err.message || 'Failed to delete this screenshot.';
+  } finally {
+    deletingScreenshotId.value = null;
+  }
+};
+
+const formatDateTime = (d) => d ? new Date(d).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+const formatBytes = (bytes) => {
+  if (!bytes) return '—';
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
 // Load pending counts in the background on mount so both badges show up
