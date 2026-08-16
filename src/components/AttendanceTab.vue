@@ -4,6 +4,9 @@
       <div>
         <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Attendance — Today</h3>
         <p class="text-xs text-zinc-500 mt-0.5">{{ presentCount }} of {{ activeEmployees.length }} clocked in today.</p>
+        <p class="text-[11px] text-zinc-400 mt-1">
+          "Active Time" reflects time spent actively using HRMS X today (mouse/keyboard activity while the tab is open and focused) — it does not track other apps, other tabs, or anything off-screen.
+        </p>
       </div>
       <button
         @click="load"
@@ -24,12 +27,13 @@
               <th class="py-3 px-6">Department</th>
               <th class="py-3 px-6">Clock In</th>
               <th class="py-3 px-6">Clock Out</th>
+              <th class="py-3 px-6">Active Time</th>
               <th class="py-3 px-6">Status</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-zinc-900">
             <tr v-if="rows.length === 0" class="text-center text-zinc-500">
-              <td colspan="5" class="py-12">
+              <td colspan="6" class="py-12">
                 <Timer class="w-8 h-8 text-zinc-800 mx-auto mb-2" />
                 <p class="text-xs">No active employees to track.</p>
               </td>
@@ -39,6 +43,7 @@
               <td class="py-4 px-6 text-zinc-600 dark:text-zinc-400">{{ r.department }}</td>
               <td class="py-4 px-6 text-zinc-700 dark:text-zinc-300 font-mono">{{ r.clockIn ? formatTime(r.clockIn) : '—' }}</td>
               <td class="py-4 px-6 text-zinc-700 dark:text-zinc-300 font-mono">{{ r.clockOut ? formatTime(r.clockOut) : '—' }}</td>
+              <td class="py-4 px-6 text-zinc-700 dark:text-zinc-300 font-mono">{{ formatActiveMinutes(r.activeMinutes) }}</td>
               <td class="py-4 px-6">
                 <span :class="[statusStyle(r.status), 'px-2 py-0.5 text-[10px] font-mono uppercase font-semibold rounded border']">
                   {{ r.status }}
@@ -61,17 +66,23 @@ const props = defineProps({
   employees: { type: Array, default: () => [] },
 });
 
-const { getAttendanceToday } = useApi();
+const { getAttendanceToday, getTeamActivity } = useApi();
 
 const loading = ref(false);
 const records = ref([]);
+const activityRecords = ref([]);
 
 const activeEmployees = computed(() => props.employees.filter(e => e.status !== 'Offboarded'));
 
 const load = async () => {
   loading.value = true;
   try {
-    records.value = await getAttendanceToday();
+    const [attendance, activity] = await Promise.all([
+      getAttendanceToday(),
+      getTeamActivity().catch(() => ({ records: [] })), // don't let this block the attendance table
+    ]);
+    records.value = attendance;
+    activityRecords.value = activity?.records || [];
   } catch {
     records.value = [];
   } finally {
@@ -83,6 +94,7 @@ onMounted(load);
 
 const rows = computed(() => {
   const byEmployee = new Map(records.value.map(r => [r.employeeId?._id || r.employeeId, r]));
+  const activityByEmployee = new Map(activityRecords.value.map(a => [a.employeeId?._id || a.employeeId, a]));
   return activeEmployees.value.map(emp => {
     const rec = byEmployee.get(emp._id);
     const clockIn = rec?.clockIn?.at || null;
@@ -93,6 +105,7 @@ const rows = computed(() => {
       department: emp.departmentId?.name || 'Unassigned',
       clockIn,
       clockOut,
+      activeMinutes: activityByEmployee.get(emp._id)?.activeMinutes ?? null,
       status: clockOut ? 'Clocked Out' : clockIn ? 'Present' : 'Not Clocked In',
     };
   }).sort((a, b) => (a.status === b.status ? a.name.localeCompare(b.name) : a.status === 'Present' ? -1 : 1));
@@ -107,4 +120,11 @@ const statusStyle = (status) => ({
 }[status] || 'bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-500 border-zinc-200 dark:border-zinc-800');
 
 const formatTime = (dateStr) => new Date(dateStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+const formatActiveMinutes = (minutes) => {
+  if (!minutes) return '—';
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
 </script>

@@ -300,6 +300,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useApi } from './composables/useApi';
+import { useActivityTracker } from './composables/useActivityTracker';
 import { AlertCircle, Sun, Moon } from 'lucide-vue-next';
 
 // Components
@@ -342,8 +343,10 @@ const {
   getCompliances, getDocuments, getOnboardings, getProbations, getEmploymentHistories,
   getRequisitions, getRedeployments, getExits, getCases, getBenefits, getTickets,
   getJobArchitecture, getPositions, getInternalJobs, getTrainingCourses, getDepartments,
-  getPerformanceCycles, getShoutouts
+  getPerformanceCycles, getShoutouts, pingActivity
 } = useApi();
+
+const { start: startActivityTracker, stop: stopActivityTracker } = useActivityTracker(pingActivity);
 
 // UI state
 const showLanding   = ref(true);
@@ -503,7 +506,7 @@ const handleTwoFactorChanged = (enabled) => {
 // Bump this to force every employee to re-accept (e.g. after the notice text
 // changes materially) — anyone whose stored version doesn't match sees the
 // modal again on their next load, even if they'd already accepted before.
-const PRIVACY_NOTICE_VERSION = 'v1-2026-08';
+const PRIVACY_NOTICE_VERSION = 'v2-2026-08';
 
 const needsPrivacyConsent = computed(() => {
   if (authUser.value?.role !== 'Employee') return false;
@@ -528,6 +531,14 @@ const handleLogout = () => {
 watch(activeTenant, () => {
   if (activeTenant.value && authUser.value) loadAllData();
 });
+
+// ── Activity tracking (in-app active-time, Employee accounts only) ─────────
+// Starts once an Employee is actually inside the app (not on the landing/auth
+// screen) and stops on logout or if an HR account is signed in instead.
+watch([() => authUser.value?.role, showLanding], ([role, landing]) => {
+  if (role === 'Employee' && !landing) startActivityTracker();
+  else stopActivityTracker();
+}, { immediate: true });
 
 // ── Browser History integration (back/forward button support) ─────────────
 // When the active tab changes, push a history entry so the browser back button

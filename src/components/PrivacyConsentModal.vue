@@ -27,6 +27,11 @@
         </div>
 
         <div class="space-y-1.5">
+          <h4 class="font-semibold text-zinc-800 dark:text-zinc-200">Activity tracking</h4>
+          <p>While you have HRMS X open, we record whether you're actively using it — based on mouse/keyboard activity and whether the tab is visible and focused — to show your active time for the day. This only covers time inside this application. We do not track other apps, other browser tabs, keystrokes, or screenshots. HR can see your daily active-time totals; you can see your own from your dashboard.</p>
+        </div>
+
+        <div class="space-y-1.5">
           <h4 class="font-semibold text-zinc-800 dark:text-zinc-200">Your rights</h4>
           <p>Under the Nigeria Data Protection Act 2023, you can request a copy of your data, ask for corrections, or request erasure at any time from the "My Data & Privacy" panel on your dashboard.</p>
         </div>

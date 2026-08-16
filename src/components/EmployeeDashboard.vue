@@ -40,6 +40,7 @@
           </p>
           <p v-else class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Not clocked in yet</p>
           <p v-if="attendanceError" class="text-xs text-rose-500 mt-0.5">{{ attendanceError }}</p>
+          <p class="text-[11px] text-zinc-400 mt-1">Active time in HRMS X today: {{ formatActiveMinutes(myActiveMinutes) }}</p>
         </div>
       </div>
       <button
@@ -277,11 +278,12 @@ onUnmounted(() => {
 });
 
 // ── Clock In / Out ─────────────────────────────────────────────────────────
-const { getMyAttendance, clockIn, clockOut } = useApi();
+const { getMyAttendance, clockIn, clockOut, getMyActivity } = useApi();
 
 const today = ref(null);
 const attendanceBusy = ref(false);
 const attendanceError = ref(null);
+const myActiveMinutes = ref(0);
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 
@@ -291,6 +293,12 @@ const loadToday = async () => {
     today.value = records.find(r => r.date === todayStr()) || null;
   } catch {
     // Non-fatal — the widget just shows "Not clocked in yet"
+  }
+  try {
+    const activity = await getMyActivity(1);
+    myActiveMinutes.value = activity.find(a => a.date === todayStr())?.activeMinutes || 0;
+  } catch {
+    // Non-fatal — just shows 0m
   }
 };
 
@@ -331,6 +339,13 @@ const handleClockOut = async () => {
   } finally {
     attendanceBusy.value = false;
   }
+};
+
+const formatActiveMinutes = (minutes) => {
+  if (!minutes) return '0m';
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
 
 const formatTime = (dateStr) => {

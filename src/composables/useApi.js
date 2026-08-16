@@ -283,6 +283,14 @@ export function useApi() {
   // ── Audit Log ─────────────────────────────────────────────────────────────
   const getAuditLog = () => call(async () => (await api.get('/audit-log')).data.data);
 
+  // ── Activity (in-app active-time tracking) ────────────────────────────────
+  // pingActivity intentionally bypasses the global call() wrapper — it's a
+  // silent background heartbeat, so a transient failure shouldn't ever pop
+  // the app's global error banner in front of the employee.
+  const pingActivity     = async () => (await api.post('/activity/ping')).data.data;
+  const getMyActivity    = (days) => call(async () => (await api.get('/activity/me', { params: days ? { days } : {} })).data.data);
+  const getTeamActivity  = (date) => call(async () => (await api.get('/activity/team', { params: date ? { date } : {} })).data.data);
+
   // ── Notifications ─────────────────────────────────────────────────────────
   const getNotifications        = () => call(async () => (await api.get('/notifications')).data.data);
   const markNotificationRead    = (id) => call(async () => (await api.put(`/notifications/${id}/read`)).data.data);
@@ -338,6 +346,7 @@ export function useApi() {
     getTrainingCourses, createTrainingCourse, enrollEmployee, updateEnrollmentStatus,
     getMyAttendance, clockIn, clockOut, getAttendanceToday,
     getAuditLog,
+    pingActivity, getMyActivity, getTeamActivity,
     getNotifications, markNotificationRead, markAllNotificationsRead,
     exportMyData, createDsarRequest, getDsarRequests, updateDsarRequest,
     setPrivacyConsent,
