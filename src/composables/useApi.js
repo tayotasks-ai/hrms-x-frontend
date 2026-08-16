@@ -61,7 +61,7 @@ export function useApi() {
 
   const checkHealth = async () => {
     try {
-      const r = await axios.get('/api/health');
+      const r = await api.get('/health');
       apiHealth.value = { status: r.data.status === 'ok' ? 'healthy' : 'degraded', message: r.data.message };
     } catch {
       apiHealth.value = { status: 'disconnected', message: 'Cannot reach API.' };
