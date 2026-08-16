@@ -75,13 +75,18 @@
           <button @click="$emit('navigate', 'leaves')" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Apply</button>
         </div>
         <p class="text-sm font-medium text-zinc-500">Annual Leave Balance</p>
-        <div class="flex items-end gap-2 mt-1">
-          <h3 class="text-3xl font-bold font-display text-zinc-900 dark:text-zinc-50">15</h3>
+        <div v-if="annualLeaveBalance?.uncapped" class="flex items-end gap-2 mt-1">
+          <h3 class="text-xl font-bold font-display text-zinc-900 dark:text-zinc-50">No cap</h3>
+        </div>
+        <div v-else-if="annualLeaveBalance" class="flex items-end gap-2 mt-1">
+          <h3 class="text-3xl font-bold font-display text-zinc-900 dark:text-zinc-50">{{ annualLeaveBalance.remaining }}</h3>
           <span class="text-sm font-medium text-zinc-500 mb-1">Days left</span>
         </div>
-        <!-- Progress bar mock -->
-        <div class="w-full bg-zinc-100 dark:bg-zinc-900 rounded-full h-1.5 mt-4">
-          <div class="bg-indigo-500 h-1.5 rounded-full" style="width: 70%"></div>
+        <div v-else class="flex items-end gap-2 mt-1">
+          <h3 class="text-3xl font-bold font-display text-zinc-300 dark:text-zinc-700">&mdash;</h3>
+        </div>
+        <div v-if="annualLeaveBalance && !annualLeaveBalance.uncapped" class="w-full bg-zinc-100 dark:bg-zinc-900 rounded-full h-1.5 mt-4">
+          <div class="bg-indigo-500 h-1.5 rounded-full" :style="{ width: annualLeaveBarWidth + '%' }"></div>
         </div>
       </div>
 
@@ -245,17 +250,29 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { CalendarOff, CreditCard, LifeBuoy, FileText, Briefcase, BookOpen, Target, Clock, Sparkles, Timer, ShieldCheck, Download, FileEdit, X } from 'lucide-vue-next';
 import ShoutoutsWidget from './ShoutoutsWidget.vue';
 import { useApi } from '../composables/useApi';
 
-defineProps({
+const props = defineProps({
   authUser: {
     type: Object,
     required: true
   },
+  dashboardData: { type: Object, default: () => ({}) },
   shoutouts: { type: Array, default: () => [] }
+});
+
+// Annual Leave Balance widget — computed server-side in getDashboardStats
+// (mirrors LeavesTab.vue's entitlement-minus-used-days logic). A policy
+// value of 0 means "no cap", so we show that state distinctly rather than
+// dividing by zero for the progress bar.
+const annualLeaveBalance = computed(() => props.dashboardData?.annualLeaveBalance || null);
+const annualLeaveBarWidth = computed(() => {
+  const b = annualLeaveBalance.value;
+  if (!b || b.uncapped || !b.entitlement) return 0;
+  return Math.min(100, Math.round((b.remaining / b.entitlement) * 100));
 });
 
 const emit = defineEmits(['navigate', 'refresh']);
