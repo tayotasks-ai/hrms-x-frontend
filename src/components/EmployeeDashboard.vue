@@ -74,20 +74,22 @@
           </div>
           <button @click="$emit('navigate', 'leaves')" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Apply</button>
         </div>
-        <p class="text-sm font-medium text-zinc-500">Annual Leave Balance</p>
-        <div v-if="annualLeaveBalance?.uncapped" class="flex items-end gap-2 mt-1">
-          <h3 class="text-xl font-bold font-display text-zinc-900 dark:text-zinc-50">No cap</h3>
+        <p class="text-sm font-medium text-zinc-500 mb-3">Leave Balance</p>
+        <div v-if="leaveBalances.length" class="grid grid-cols-2 gap-x-4 gap-y-2.5">
+          <div v-for="lb in leaveBalances" :key="lb.type">
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="text-[11px] text-zinc-500 truncate">{{ lb.type }}</span>
+              <span
+                class="text-xs font-semibold shrink-0"
+                :class="!lb.uncapped && lb.remaining === 0 ? 'text-red-500' : 'text-zinc-800 dark:text-zinc-200'"
+              >{{ lb.uncapped ? 'No cap' : `${lb.remaining}/${lb.entitlement}` }}</span>
+            </div>
+            <div v-if="!lb.uncapped" class="w-full bg-zinc-100 dark:bg-zinc-900 rounded-full h-1 mt-1">
+              <div class="bg-indigo-500 h-1 rounded-full" :style="{ width: leaveBarWidth(lb) + '%' }"></div>
+            </div>
+          </div>
         </div>
-        <div v-else-if="annualLeaveBalance" class="flex items-end gap-2 mt-1">
-          <h3 class="text-3xl font-bold font-display text-zinc-900 dark:text-zinc-50">{{ annualLeaveBalance.remaining }}</h3>
-          <span class="text-sm font-medium text-zinc-500 mb-1">Days left</span>
-        </div>
-        <div v-else class="flex items-end gap-2 mt-1">
-          <h3 class="text-3xl font-bold font-display text-zinc-300 dark:text-zinc-700">&mdash;</h3>
-        </div>
-        <div v-if="annualLeaveBalance && !annualLeaveBalance.uncapped" class="w-full bg-zinc-100 dark:bg-zinc-900 rounded-full h-1.5 mt-4">
-          <div class="bg-indigo-500 h-1.5 rounded-full" :style="{ width: annualLeaveBarWidth + '%' }"></div>
-        </div>
+        <p v-else class="text-xs text-zinc-400 mt-1">Loading balances&hellip;</p>
       </div>
 
       <!-- Payslip Widget -->
@@ -264,16 +266,15 @@ const props = defineProps({
   shoutouts: { type: Array, default: () => [] }
 });
 
-// Annual Leave Balance widget — computed server-side in getDashboardStats
-// (mirrors LeavesTab.vue's entitlement-minus-used-days logic). A policy
-// value of 0 means "no cap", so we show that state distinctly rather than
+// Leave Balance widget — one entry per leave type, computed server-side in
+// getDashboardStats (mirrors LeavesTab.vue's entitlement-minus-used-days
+// logic). A policy value of 0 means "no cap", shown distinctly rather than
 // dividing by zero for the progress bar.
-const annualLeaveBalance = computed(() => props.dashboardData?.annualLeaveBalance || null);
-const annualLeaveBarWidth = computed(() => {
-  const b = annualLeaveBalance.value;
-  if (!b || b.uncapped || !b.entitlement) return 0;
-  return Math.min(100, Math.round((b.remaining / b.entitlement) * 100));
-});
+const leaveBalances = computed(() => props.dashboardData?.leaveBalances || []);
+const leaveBarWidth = (lb) => {
+  if (!lb || lb.uncapped || !lb.entitlement) return 0;
+  return Math.min(100, Math.round((lb.remaining / lb.entitlement) * 100));
+};
 
 const emit = defineEmits(['navigate', 'refresh']);
 
