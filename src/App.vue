@@ -289,8 +289,8 @@
           <!-- Audit Log -->
           <AuditLogTab v-else-if="activeTab === 'audit-log'" />
 
-          <!-- Payment Settings (HR only) -->
-          <PaymentSettingsTab v-else-if="activeTab === 'payment-settings'" />
+          <!-- Payroll Wallet (HR only) -->
+          <WalletTab v-else-if="activeTab === 'wallet'" />
         </template>
       </div>
     </main>
@@ -333,7 +333,7 @@ import OrgTab from './components/OrgTab.vue';
 import DepartmentsTab from './components/DepartmentsTab.vue';
 import AttendanceTab from './components/AttendanceTab.vue';
 import AuditLogTab from './components/AuditLogTab.vue';
-import PaymentSettingsTab from './components/PaymentSettingsTab.vue';
+import WalletTab from './components/WalletTab.vue';
 import NotificationBell from './components/NotificationBell.vue';
 
 const {
@@ -397,7 +397,7 @@ const TAB_LABELS = {
   helpdesk: 'HR Helpdesk', documents: 'Documents', compliance: 'Compliance Calendar',
   'employment-history': 'Employment History', positions: 'Positions',
   'job-architecture': 'Job Architecture', departments: 'Departments & Hierarchy',
-  'audit-log': 'Audit Log', 'payment-settings': 'Payment Settings'
+  'audit-log': 'Audit Log', 'wallet': 'Payroll Wallet'
 };
 const currentTabLabel = computed(() => TAB_LABELS[activeTab.value] || activeTab.value);
 

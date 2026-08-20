@@ -5,6 +5,9 @@
       <div>
         <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Payroll & Compensation</h3>
         <p class="text-xs text-zinc-500 mt-0.5">Process salaries, log deductions/allowances, and generate employee payslips.</p>
+        <p v-if="authUser?.role !== 'Employee' && walletBalance !== null" class="text-xs font-mono text-zinc-600 dark:text-zinc-400 mt-1.5">
+          Payroll wallet: <span class="font-semibold text-zinc-800 dark:text-zinc-200">&#8358;{{ walletBalance.toLocaleString() }}</span>
+        </p>
       </div>
       <div v-if="authUser?.role !== 'Employee'" class="w-full sm:w-auto flex items-center gap-2">
         <button
@@ -660,8 +663,26 @@ const emit = defineEmits(['refresh']);
 
 const {
   createPayslip, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
-  getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval,
+  getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval, getWallet,
 } = useApi();
+
+// Mirrors utils/paystack.js computeTransferFee on the backend — used only
+// to preview the fee breakdown in a confirm dialog before paying, since the
+// backend is the source of truth for what's actually charged. Estimated
+// as if stamp duty applies (the conservative default); the real charge may
+// be ₦50 less per transfer if the platform has stamp-duty exemption.
+const estimateFee = (netPay) => {
+  const paystackFee = netPay <= 5000 ? 10 : netPay <= 50000 ? 25 : 50;
+  const stampDuty = netPay >= 10000 ? 50 : 0;
+  const markup = 500;
+  return { paystackFee, stampDuty, markup, total: paystackFee + stampDuty + markup };
+};
+
+const walletBalance = ref(null);
+const loadWalletBalance = async () => {
+  try { walletBalance.value = (await getWallet()).balance; }
+  catch { /* non-fatal — the balance chip just won't show */ }
+};
 
 const showGenerateModal = ref(false);
 const showInvoiceModal = ref(false);
@@ -739,7 +760,10 @@ const rejectRequest = async (id) => {
 };
 
 onMounted(() => {
-  if (props.authUser?.role !== 'Employee') loadApprovals();
+  if (props.authUser?.role !== 'Employee') {
+    loadApprovals();
+    loadWalletBalance();
+  }
 });
 
 const paymentStatus = (slip) => slip.payment?.status || 'Unpaid';
@@ -779,6 +803,16 @@ const queueOtpIfNeeded = (requiresOtp, payslipId) => {
 };
 
 const payNow = async (slip) => {
+  const fee = estimateFee(slip.netPay);
+  const ok = window.confirm(
+    `Pay ${slip.employeeId?.name || 'this employee'} ₦${slip.netPay.toLocaleString()} net pay?\n\n` +
+    `+ ₦${fee.paystackFee} Paystack fee\n` +
+    (fee.stampDuty ? `+ ₦${fee.stampDuty} stamp duty\n` : '') +
+    `+ ₦${fee.markup} platform fee\n` +
+    `= ₦${(slip.netPay + fee.total).toLocaleString()} debited from the payroll wallet (estimate).`
+  );
+  if (!ok) return;
+
   paymentError.value = null;
   paymentInfo.value = null;
   payingIds.value = [...payingIds.value, slip._id];
@@ -791,6 +825,7 @@ const payNow = async (slip) => {
     }
     queueOtpIfNeeded(res.data?.requiresOtp, slip._id);
     emit('refresh');
+    loadWalletBalance();
   } catch (err) {
     paymentError.value = err.response?.data?.message || err.message || 'Payment failed.';
   } finally {
@@ -800,6 +835,17 @@ const payNow = async (slip) => {
 
 const payBatchNow = async () => {
   if (selectedIds.value.length === 0) return;
+
+  const selectedSlips = props.payslips.filter(s => selectedIds.value.includes(s._id));
+  const netTotal = selectedSlips.reduce((sum, s) => sum + s.netPay, 0);
+  const feeTotal = selectedSlips.reduce((sum, s) => sum + estimateFee(s.netPay).total, 0);
+  const ok = window.confirm(
+    `Pay ${selectedSlips.length} selected payslip(s)?\n\n` +
+    `₦${netTotal.toLocaleString()} net pay + ₦${feeTotal.toLocaleString()} in Paystack/stamp/platform fees\n` +
+    `= ₦${(netTotal + feeTotal).toLocaleString()} debited from the payroll wallet (estimate, paid in order — if the wallet runs short partway through, the rest are skipped and you'll be notified).`
+  );
+  if (!ok) return;
+
   paymentError.value = null;
   paymentInfo.value = null;
   batchPaying.value = true;
@@ -820,6 +866,7 @@ const payBatchNow = async () => {
     }
     selectedIds.value = [];
     emit('refresh');
+    loadWalletBalance();
   } catch (err) {
     paymentError.value = err.response?.data?.message || err.message || 'Batch payment failed.';
   } finally {

@@ -161,11 +161,12 @@ export function useApi() {
   const payPayslipBatch     = (payslipIds) => call(async () => (await api.post('/payslips/pay-batch', { payslipIds })).data);
   const finalizePayslipPayment = (id, otp) => call(async () => (await api.post(`/payslips/${id}/pay/finalize`, { otp })).data);
 
-  // ── Payment Settings (Paystack) ───────────────────────────────────────────
-  const getPaymentSettings  = () => call(async () => (await api.get('/payment-settings')).data.data);
-  const connectPaystack     = (secretKey) => call(async () => (await api.post('/payment-settings/paystack/connect', { secretKey })).data);
-  const disconnectPaystack  = () => call(async () => (await api.delete('/payment-settings/paystack')).data);
-  const setDualApproval     = (enabled) => call(async () => (await api.put('/payment-settings/dual-approval', { enabled })).data);
+  // ── Payroll Wallet ─────────────────────────────────────────────────────────
+  const getWallet             = () => call(async () => (await api.get('/wallet')).data.data);
+  const setupWallet           = () => call(async () => (await api.post('/wallet/setup')).data);
+  const setWalletDualApproval = (enabled) => call(async () => (await api.put('/wallet/dual-approval', { enabled })).data);
+  const setPayrollSchedule    = (d) => call(async () => (await api.put('/wallet/schedule', d)).data.data);
+  const getWalletTransactions = () => call(async () => (await api.get('/wallet/transactions')).data.data);
 
   // ── Payroll Approvals (maker-checker) ─────────────────────────────────────
   const getPayrollApprovals     = (status) => call(async () => (await api.get('/payroll-approvals', { params: status ? { status } : {} })).data.data);
@@ -331,7 +332,7 @@ export function useApi() {
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getLeaves, createLeave, updateLeaveStatus, getLeavePolicy, updateLeavePolicy,
     getPayslips, createPayslip, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
-    getPaymentSettings, connectPaystack, disconnectPaystack, setDualApproval,
+    getWallet, setupWallet, setWalletDualApproval, setPayrollSchedule, getWalletTransactions,
     getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval,
     getBanks, verifyBankAccount,
     getPerformanceCycles, createPerformanceCycle, updatePerformanceCycle,

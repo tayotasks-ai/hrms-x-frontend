@@ -104,7 +104,7 @@ const hrItems = [
   { id: 'compliance',       label: 'Compliance Calendar', icon: CheckSquare },
   { id: 'employment-history', label: 'Employment History', icon: ScrollText },
   { id: 'audit-log',        label: 'Audit Log',           icon: History },
-  { id: 'payment-settings', label: 'Payment Settings',    icon: Landmark },
+  { id: 'wallet',           label: 'Payroll Wallet',      icon: Landmark },
 ];
 
 const essItems = [
