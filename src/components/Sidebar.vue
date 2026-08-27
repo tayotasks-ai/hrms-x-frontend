@@ -2,9 +2,9 @@
   <aside class="w-64 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col h-screen sticky top-0 transition-colors">
     <!-- Brand -->
     <div class="h-16 flex items-center px-6 border-b border-zinc-200 dark:border-zinc-800 gap-2">
-      <div class="w-7 h-7 shrink-0 relative">
-        <img :src="logoLight" alt="WorkDesk" class="w-7 h-7 object-contain dark:hidden" />
-        <img :src="logoDark" alt="WorkDesk" class="w-7 h-7 object-contain hidden dark:block" />
+      <div class="w-9 h-9 shrink-0 relative flex items-center justify-center">
+        <img :src="logoLight" alt="WorkDesk" class="w-9 h-9 object-contain block dark:hidden" />
+        <img :src="logoDark" alt="WorkDesk" class="w-9 h-9 object-contain hidden dark:block" />
       </div>
       <div>
         <h1 class="font-bold text-zinc-900 dark:text-zinc-100 text-sm tracking-wide uppercase">WorkDesk</h1>
