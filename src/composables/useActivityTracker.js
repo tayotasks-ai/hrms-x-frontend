@@ -1,8 +1,8 @@
 // In-app active-time tracking. This has NO visibility into other apps,
-// other browser tabs, or anything outside the HRMS X tab — it only knows
+// other browser tabs, or anything outside the WorkDesk tab — it only knows
 // whether this tab is open, visible, focused, and has recently received
 // real mouse/keyboard/scroll/touch input. That's deliberate: it's meant to
-// answer "were they actively using HRMS X," not "what were they doing on
+// answer "were they actively using WorkDesk," not "what were they doing on
 // their computer." See backend/controllers/activityController.js for the
 // server-side half of this.
 const HEARTBEAT_MS = 5 * 60 * 1000;       // how often we consider sending a ping

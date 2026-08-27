@@ -210,7 +210,7 @@
     <template v-else-if="subView === 'monitoring'">
       <div>
         <h3 class="font-bold text-zinc-900 dark:text-zinc-50">Monitoring</h3>
-        <p class="text-xs text-zinc-500 mt-0.5">Controls for the HRMS X desktop agent's optional screenshot capture. Active/idle time tracking is always on and covered separately in the general privacy notice — this only affects screenshots.</p>
+        <p class="text-xs text-zinc-500 mt-0.5">Controls for the WorkDesk desktop agent's optional screenshot capture. Active/idle time tracking is always on and covered separately in the general privacy notice — this only affects screenshots.</p>
       </div>
 
       <div class="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-zinc-50 dark:bg-zinc-900/40 space-y-4">

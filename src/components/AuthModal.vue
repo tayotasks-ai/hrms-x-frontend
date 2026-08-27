@@ -9,8 +9,8 @@
       <div class="p-8 flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-center mb-6 gap-2">
-          <div class="w-8 h-8 bg-lime-500 rounded flex items-center justify-center font-bold text-black text-sm shadow-[0_0_15px_rgba(132,204,22,0.4)]">HX</div>
-          <span class="font-bold text-zinc-900 dark:text-zinc-100 text-lg uppercase tracking-wider">HRMS X</span>
+          <div class="w-8 h-8 bg-lime-500 rounded flex items-center justify-center font-bold text-black text-sm shadow-[0_0_15px_rgba(132,204,22,0.4)]">WD</div>
+          <span class="font-bold text-zinc-900 dark:text-zinc-100 text-lg uppercase tracking-wider">WorkDesk</span>
         </div>
 
         <div v-if="error" class="mb-4 p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 rounded-lg text-xs font-mono flex items-start gap-2">

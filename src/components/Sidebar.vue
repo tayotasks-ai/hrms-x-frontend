@@ -2,9 +2,9 @@
   <aside class="w-64 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col h-screen sticky top-0 transition-colors">
     <!-- Brand -->
     <div class="h-16 flex items-center px-6 border-b border-zinc-200 dark:border-zinc-800 gap-2">
-      <div class="w-7 h-7 bg-lime-500 rounded flex items-center justify-center font-bold text-black text-sm">HX</div>
+      <div class="w-7 h-7 bg-lime-500 rounded flex items-center justify-center font-bold text-black text-sm">WD</div>
       <div>
-        <h1 class="font-bold text-zinc-900 dark:text-zinc-100 text-sm tracking-wide uppercase">HRMS X</h1>
+        <h1 class="font-bold text-zinc-900 dark:text-zinc-100 text-sm tracking-wide uppercase">WorkDesk</h1>
         <p class="text-[10px] text-zinc-500 tracking-wider uppercase">{{ userRole === 'Employee' ? 'Employee Portal' : 'HR Admin' }}</p>
       </div>
     </div>

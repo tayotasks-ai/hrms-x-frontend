@@ -23,12 +23,12 @@
 
         <div class="space-y-1.5">
           <h4 class="font-semibold text-zinc-800 dark:text-zinc-200">Protection</h4>
-          <p>Regulatory IDs and your bank account number are encrypted at rest. Day-to-day access is limited to HR administrators at your organisation. In rare cases, a small, fixed set of HRMS X platform staff can access your organisation's account for support (e.g. helping with setup or fixing an issue) — this is logged, time-limited to 45 minutes, requires a stated reason, and your organisation's HR Admins are notified automatically whenever it happens.</p>
+          <p>Regulatory IDs and your bank account number are encrypted at rest. Day-to-day access is limited to HR administrators at your organisation. In rare cases, a small, fixed set of WorkDesk platform staff can access your organisation's account for support (e.g. helping with setup or fixing an issue) — this is logged, time-limited to 45 minutes, requires a stated reason, and your organisation's HR Admins are notified automatically whenever it happens.</p>
         </div>
 
         <div class="space-y-1.5">
           <h4 class="font-semibold text-zinc-800 dark:text-zinc-200">Activity tracking</h4>
-          <p>While you have HRMS X open, we record whether you're actively using it — based on mouse/keyboard activity and whether the tab is visible and focused — to show your active time for the day. This only covers time inside this application. We do not track other apps, other browser tabs, keystrokes, or screenshots. HR can see your daily active-time totals; you can see your own from your dashboard.</p>
+          <p>While you have WorkDesk open, we record whether you're actively using it — based on mouse/keyboard activity and whether the tab is visible and focused — to show your active time for the day. This only covers time inside this application. We do not track other apps, other browser tabs, keystrokes, or screenshots. HR can see your daily active-time totals; you can see your own from your dashboard.</p>
         </div>
 
         <div class="space-y-1.5">

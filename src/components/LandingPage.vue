@@ -7,8 +7,8 @@
     <!-- Header -->
     <header class="max-w-7xl w-full mx-auto px-6 py-6 flex items-center justify-between relative z-10">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-lime-500 rounded-lg flex items-center justify-center font-bold text-black shadow-[0_0_20px_rgba(132,204,22,0.4)]">HX</div>
-        <span class="font-bold text-xl uppercase tracking-widest text-zinc-900 dark:text-white">HRMS X</span>
+        <div class="w-10 h-10 bg-lime-500 rounded-lg flex items-center justify-center font-bold text-black shadow-[0_0_20px_rgba(132,204,22,0.4)]">WD</div>
+        <span class="font-bold text-xl uppercase tracking-widest text-zinc-900 dark:text-white">WorkDesk</span>
       </div>
       <div class="flex items-center gap-6">
         <button @click="$emit('toggle-theme')" class="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors text-zinc-500 dark:text-zinc-400 focus:outline-none">

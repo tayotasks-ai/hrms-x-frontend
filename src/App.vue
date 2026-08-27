@@ -39,7 +39,7 @@
             <Sun v-if="isDark" class="w-4 h-4" /><Moon v-else class="w-4 h-4" />
           </button>
           <div class="flex items-center gap-2 border-l border-zinc-200 dark:border-zinc-800 pl-3">
-            <span class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">HRMS X</span>
+            <span class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">WorkDesk</span>
             <span class="text-zinc-300 dark:text-zinc-700">/</span>
             <span class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{{ currentTabLabel }}</span>
           </div>

@@ -40,7 +40,7 @@
           </p>
           <p v-else class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Not clocked in yet</p>
           <p v-if="attendanceError" class="text-xs text-rose-500 mt-0.5">{{ attendanceError }}</p>
-          <p class="text-[11px] text-zinc-400 mt-1">Active time in HRMS X today: {{ formatActiveMinutes(myActiveMinutes) }}</p>
+          <p class="text-[11px] text-zinc-400 mt-1">Active time in WorkDesk today: {{ formatActiveMinutes(myActiveMinutes) }}</p>
         </div>
       </div>
       <button

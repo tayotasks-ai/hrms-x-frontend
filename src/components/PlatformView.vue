@@ -25,7 +25,7 @@
           </button>
         </form>
         <button @click="$emit('exit')" class="w-full text-center text-xs text-zinc-600 hover:text-zinc-400 mt-4 font-mono">
-          ← back to HRMS X
+          ← back to WorkDesk
         </button>
       </div>
     </div>

@@ -5,7 +5,7 @@
         <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Attendance — Today</h3>
         <p class="text-xs text-zinc-500 mt-0.5">{{ presentCount }} of {{ activeEmployees.length }} clocked in today.</p>
         <p class="text-[11px] text-zinc-400 mt-1">
-          "Active Time" reflects time spent actively using HRMS X today (mouse/keyboard activity while the tab is open and focused) — it does not track other apps, other tabs, or anything off-screen.
+          "Active Time" reflects time spent actively using WorkDesk today (mouse/keyboard activity while the tab is open and focused) — it does not track other apps, other tabs, or anything off-screen.
         </p>
       </div>
       <button
