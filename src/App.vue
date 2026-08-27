@@ -1,6 +1,9 @@
 <template>
+  <!-- ── Platform (root) admin — reached only via #platform, no public link ── -->
+  <PlatformView v-if="isPlatformRoute" @exit="handleExitPlatformRoute" @impersonated="handleImpersonated" />
+
   <!-- ── Landing / Auth ──────────────────────────────────────────────────── -->
-  <template v-if="showLanding">
+  <template v-else-if="showLanding">
     <LandingPage
       :isDark="isDark"
       @toggle-theme="toggleTheme"
@@ -62,6 +65,15 @@
           </button>
         </div>
       </header>
+
+      <!-- Platform-admin impersonation banner — see PlatformView.vue. Purely a
+           client-side flag (not derived from the JWT); the actual access
+           control lives server-side via the short-lived impersonation token
+           and ImpersonationLog audit trail. -->
+      <div v-if="impersonating" class="bg-amber-500 text-amber-950 px-6 py-2 text-xs font-mono flex items-center justify-between gap-3">
+        <span>Viewing <strong>{{ impersonating.tenantName }}</strong> as platform support ({{ impersonating.platformAdminName }}) — session ends {{ new Date(impersonating.expiresAt).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' }) }}</span>
+        <button @click="handleExitImpersonation" class="underline hover:no-underline shrink-0">Exit</button>
+      </div>
 
       <ChangePasswordModal
         v-if="showChangePasswordModal"
@@ -305,6 +317,7 @@ import { AlertCircle, Sun, Moon } from 'lucide-vue-next';
 
 // Components
 import Sidebar from './components/Sidebar.vue';
+import PlatformView from './components/PlatformView.vue';
 import LandingPage from './components/LandingPage.vue';
 import AuthModal from './components/AuthModal.vue';
 import ChangePasswordModal from './components/ChangePasswordModal.vue';
@@ -349,6 +362,9 @@ const {
 const { start: startActivityTracker, stop: stopActivityTracker } = useActivityTracker(pingActivity);
 
 // UI state
+// Reached only by typing/bookmarking #platform directly — deliberately no
+// visible link from the public landing page. See PlatformView.vue.
+const isPlatformRoute = ref(window.location.hash === '#platform');
 const showLanding   = ref(true);
 const showAuthModal = ref(false);
 const activeTab     = ref('dashboard');
@@ -524,8 +540,38 @@ const handleLogout = () => {
   setAuthUser(null);
   activeTenant.value = null;
   localStorage.removeItem('hrms_tenant_id');
+  localStorage.removeItem('hrms_impersonating');
   showLanding.value = true;
   activeTab.value = 'dashboard';
+};
+
+// ── Platform-admin impersonation ────────────────────────────────────────────
+const impersonating = computed(() => {
+  try { return JSON.parse(localStorage.getItem('hrms_impersonating') || 'null'); }
+  catch { return null; }
+});
+
+// PlatformView.vue already called setAuthUser/setActiveTenant with the
+// impersonated tenant's HR_Admin session before emitting this — just leave
+// platform mode so the normal dashboard renders with that session.
+const handleImpersonated = () => {
+  isPlatformRoute.value = false;
+  showLanding.value = false;
+  activeTab.value = 'dashboard';
+  window.location.hash = 'dashboard';
+};
+
+// Ends the impersonated session and drops back into the platform view,
+// rather than the normal landing page — that's where a platform admin
+// expects to land after "Exit".
+const handleExitImpersonation = () => {
+  handleLogout();
+  isPlatformRoute.value = true;
+};
+
+const handleExitPlatformRoute = () => {
+  isPlatformRoute.value = false;
+  if (window.location.hash === '#platform') window.location.hash = '';
 };
 
 watch(activeTenant, () => {

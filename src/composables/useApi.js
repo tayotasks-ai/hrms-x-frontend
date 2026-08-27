@@ -9,12 +9,28 @@ const apiHealth  = ref({ status: 'unknown', message: '' });
 const isLoading  = ref(false);
 const error      = ref(null);
 
+// Platform (root) admin session — entirely separate from the tenant authUser
+// above. See backend/models/PlatformAdmin.js. Deliberately kept out of the
+// regular `api` instance/interceptor below so a platform admin's token can
+// never leak onto a tenant-scoped request (or vice versa) just because both
+// happen to be populated in the same browser tab during an impersonation
+// session.
+const platformAdmin = ref(null);
+
 // ── Axios instance ────────────────────────────────────────────────────────────
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'https://hrms-x.onrender.com/api', headers: { 'Content-Type': 'application/json' } });
 
 api.interceptors.request.use(config => {
   if (activeTenant.value?._id) config.headers['X-Tenant-ID'] = activeTenant.value._id;
   if (authUser.value?.token)   config.headers['Authorization'] = `Bearer ${authUser.value.token}`;
+  return config;
+});
+
+// Separate instance for /platform/* calls — carries the platform admin's own
+// token, never a tenant token or X-Tenant-ID header.
+const platformApi = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'https://hrms-x.onrender.com/api', headers: { 'Content-Type': 'application/json' } });
+platformApi.interceptors.request.use(config => {
+  if (platformAdmin.value?.token) config.headers['Authorization'] = `Bearer ${platformAdmin.value.token}`;
   return config;
 });
 
@@ -58,6 +74,34 @@ export function useApi() {
     const u = localStorage.getItem('hrms_auth_user');
     if (u) authUser.value = JSON.parse(u);
   };
+
+  // ── Platform (root) admin ────────────────────────────────────────────────
+  const setPlatformAdmin = (admin) => {
+    platformAdmin.value = admin;
+    if (admin?.token) localStorage.setItem('hrms_platform_admin', JSON.stringify(admin));
+    else localStorage.removeItem('hrms_platform_admin');
+  };
+
+  const restorePlatformAdmin = () => {
+    const p = localStorage.getItem('hrms_platform_admin');
+    if (p) platformAdmin.value = JSON.parse(p);
+  };
+
+  const platformLogin = (credentials) => call(async () => {
+    const r = await platformApi.post('/platform/login', credentials);
+    setPlatformAdmin(r.data.data);
+    return r.data.data;
+  });
+
+  const platformLogout = () => setPlatformAdmin(null);
+
+  const getPlatformTenants = () => call(async () => (await platformApi.get('/platform/tenants')).data.data);
+  const getPlatformTenantDetail = (id) => call(async () => (await platformApi.get(`/platform/tenants/${id}`)).data.data);
+
+  // Impersonate: returns the same shape as a normal tenant login response
+  // ({ _id, name, email, role, tenant, token }) so the caller can feed it
+  // straight into setAuthUser/setActiveTenant, exactly like a real login.
+  const impersonateTenant = (tenantId) => call(async () => (await platformApi.post(`/platform/tenants/${tenantId}/impersonate`)).data.data);
 
   const checkHealth = async () => {
     try {
@@ -329,6 +373,9 @@ export function useApi() {
     // Auth & tenant
     setActiveTenant, setAuthUser, restoreAuth, checkHealth, fetchTenants,
     registerTenant, loginUser, verifyLoginOtp, changePassword, forgotPassword, resetPasswordRequest, setTwoFactor,
+    // Platform (root) admin
+    platformAdmin, restorePlatformAdmin, platformLogin, platformLogout,
+    getPlatformTenants, getPlatformTenantDetail, impersonateTenant,
     // Modules
     getDashboardStats,
     getShoutouts, createShoutout, reactToShoutout,
