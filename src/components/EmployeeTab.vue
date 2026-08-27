@@ -1,6 +1,32 @@
 <template>
   <div class="flex h-full overflow-hidden relative">
     <div class="w-full space-y-6 overflow-y-auto pr-2 pb-20">
+    <!-- Freemium plan banner -->
+    <div
+      v-if="plan && plan.tier === 'Free'"
+      class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 rounded-lg border"
+      :class="plan.employeeCount >= plan.freeEmployeeLimit
+        ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900'
+        : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'"
+    >
+      <div class="flex items-center gap-2 text-sm">
+        <Sparkles class="w-4 h-4 text-amber-500 shrink-0" />
+        <span class="text-zinc-700 dark:text-zinc-300">
+          <span class="font-semibold">Free plan:</span>
+          {{ plan.employeeCount }}/{{ plan.freeEmployeeLimit }} employees used
+          <template v-if="plan.employeeCount >= plan.freeEmployeeLimit"> — limit reached, upgrade to add more.</template>
+        </span>
+      </div>
+      <button
+        @click="handleUpgrade"
+        :disabled="upgrading"
+        class="shrink-0 flex items-center justify-center gap-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold px-4 py-2 rounded text-sm hover:opacity-90 active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
+      >
+        {{ upgrading ? 'Upgrading…' : 'Upgrade' }}
+      </button>
+    </div>
+    <p v-if="planError" class="text-xs text-red-500 font-mono -mt-4">{{ planError }}</p>
+
     <!-- Header Controls -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-950 p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg">
       <div class="relative w-full sm:w-72">
@@ -394,9 +420,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Search, Plus, X, UserPlus, Users, Upload, Download, FileSpreadsheet, CheckCircle2, XCircle } from 'lucide-vue-next';
+import { Search, Plus, X, UserPlus, Users, Upload, Download, FileSpreadsheet, CheckCircle2, XCircle, Sparkles } from 'lucide-vue-next';
 import { parseCsvText, toCsv, downloadCsv } from '../utils/csv';
 import EmployeeProfile from './EmployeeProfile.vue';
 
@@ -413,13 +439,35 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { createEmployee, createDepartment, bulkCreateEmployees } = useApi();
+const { createEmployee, createDepartment, bulkCreateEmployees, getTenantPlan, upgradeTenantPlan } = useApi();
 
 const searchQuery = ref('');
 const showAddModal = ref(false);
 const submitting = ref(false);
 const formError = ref(null);
 const selectedEmployee = ref(null);
+
+// ── Freemium plan banner ─────────────────────────────────────────────────────
+const plan = ref(null);
+const upgrading = ref(false);
+const planError = ref(null);
+const loadPlan = async () => {
+  try { plan.value = await getTenantPlan(); }
+  catch { /* non-fatal — the banner just won't show */ }
+};
+const handleUpgrade = async () => {
+  upgrading.value = true;
+  planError.value = null;
+  try {
+    await upgradeTenantPlan();
+    await loadPlan();
+  } catch (err) {
+    planError.value = err.response?.data?.message || 'Failed to upgrade plan.';
+  } finally {
+    upgrading.value = false;
+  }
+};
+onMounted(loadPlan);
 
 // ── Bulk import ────────────────────────────────────────────────────────────
 const showBulkModal  = ref(false);
@@ -485,7 +533,7 @@ const handleBulkSubmit = async () => {
   try {
     const result = await bulkCreateEmployees(csvRows.value);
     bulkResults.value = result;
-    if (result.created.length > 0) emit('refresh');
+    if (result.created.length > 0) { emit('refresh'); loadPlan(); }
   } catch (err) {
     bulkError.value = err.response?.data?.message || err.message || 'Bulk import failed.';
   } finally {
@@ -611,8 +659,9 @@ const handleSubmit = async () => {
       joinDate: form.value.joinDate,
       birthDate: form.value.birthDate
     });
-    
+
     emit('refresh');
+    loadPlan();
     closeModal();
   } catch (err) {
     formError.value = err.response?.data?.message || err.message || 'Failed to register employee.';

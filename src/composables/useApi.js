@@ -161,6 +161,10 @@ export function useApi() {
   const payPayslipBatch     = (payslipIds) => call(async () => (await api.post('/payslips/pay-batch', { payslipIds })).data);
   const finalizePayslipPayment = (id, otp) => call(async () => (await api.post(`/payslips/${id}/pay/finalize`, { otp })).data);
 
+  // ── Tenant Plan (freemium) ─────────────────────────────────────────────────
+  const getTenantPlan    = () => call(async () => (await api.get('/tenant/plan')).data.data);
+  const upgradeTenantPlan = () => call(async () => (await api.post('/tenant/plan/upgrade')).data);
+
   // ── Payroll Wallet ─────────────────────────────────────────────────────────
   const getWallet             = () => call(async () => (await api.get('/wallet')).data.data);
   const setupWallet           = () => call(async () => (await api.post('/wallet/setup')).data);
@@ -332,6 +336,7 @@ export function useApi() {
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getLeaves, createLeave, updateLeaveStatus, getLeavePolicy, updateLeavePolicy,
     getPayslips, createPayslip, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
+    getTenantPlan, upgradeTenantPlan,
     getWallet, setupWallet, setWalletDualApproval, setPayrollSchedule, getWalletTransactions,
     getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval,
     getBanks, verifyBankAccount,
