@@ -41,9 +41,6 @@
         <button @click="$emit('open-auth')" class="px-8 py-4 rounded-full font-bold text-base bg-lime-500 text-black shadow-[0_0_30px_rgba(132,204,22,0.3)] hover:shadow-[0_0_40px_rgba(132,204,22,0.5)] transition-all hover:-translate-y-1 active:translate-y-0 w-full sm:w-auto">
           Get Started Free
         </button>
-        <button @click="$emit('open-auth')" class="px-8 py-4 rounded-full font-bold text-base bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-900 dark:text-white transition-all w-full sm:w-auto">
-          View Demo Orgs
-        </button>
       </div>
     </main>
 

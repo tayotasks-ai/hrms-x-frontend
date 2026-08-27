@@ -171,17 +171,6 @@
           </div>
         </div>
 
-        <div v-if="tenants.length && view === 'login'" class="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-          <p class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest text-center mb-3">Demo Quick Access</p>
-          <div class="flex flex-wrap justify-center gap-2">
-            <button v-for="t in tenants" :key="t._id"
-              @click="loginForm.email = 'hradmin@' + t.slug + '.com'; loginForm.password = 'password123'; handleLogin()"
-              class="px-3 py-1.5 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-lime-500 transition text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:text-lime-600 dark:hover:text-lime-400">
-              {{ t.name }}
-            </button>
-          </div>
-        </div>
-
       </div>
     </div>
   </div>
@@ -200,7 +189,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'success']);
 
-const { loginUser, verifyLoginOtp, registerTenant, forgotPassword, resetPasswordRequest, tenants, isLoading, error } = useApi();
+const { loginUser, verifyLoginOtp, registerTenant, forgotPassword, resetPasswordRequest, isLoading, error } = useApi();
 
 const view = ref(props.initialView);
 const notice = ref(null);
