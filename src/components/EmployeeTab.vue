@@ -19,7 +19,7 @@
         </span>
       </div>
       <button
-        @click="handleUpgrade"
+        @click="showUpgradeConfirm = true"
         :disabled="upgrading"
         class="shrink-0 flex items-center justify-center gap-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold px-4 py-2 rounded text-sm hover:opacity-90 active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
       >
@@ -27,6 +27,35 @@
       </button>
     </div>
     <p v-if="planError" class="text-xs text-red-500 font-mono -mt-4">{{ planError }}</p>
+
+    <!-- Upgrade confirm modal -->
+    <Transition name="fade">
+      <div v-if="showUpgradeConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="showUpgradeConfirm = false">
+        <div class="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl p-6">
+          <div class="flex items-center gap-2.5 text-amber-500 mb-3">
+            <Sparkles class="w-5 h-5" />
+            <span class="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Upgrade to Paid</span>
+          </div>
+          <p class="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
+            Billing is <strong>₦{{ (plan?.pricePerEmployee || 1500).toLocaleString() }}/employee/month</strong>
+            — currently ~₦{{ ((plan?.pricePerEmployee || 1500) * (plan?.employeeCount || 0)).toLocaleString() }}/mo for your team.
+          </p>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 font-mono mt-2">
+            Note: automatic billing isn't wired up yet — this just lifts the employee cap.
+          </p>
+          <div class="flex items-center gap-2 mt-5">
+            <button @click="showUpgradeConfirm = false"
+              class="flex-1 py-2 rounded text-sm font-medium text-zinc-600 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">
+              Cancel
+            </button>
+            <button @click="handleUpgrade" :disabled="upgrading"
+              class="flex-1 py-2 rounded text-sm font-semibold bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:opacity-90 disabled:opacity-50 transition">
+              {{ upgrading ? 'Upgrading…' : 'Confirm upgrade' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Header Controls -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-950 p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg">
@@ -452,23 +481,21 @@ const selectedEmployee = ref(null);
 const plan = ref(null);
 const upgrading = ref(false);
 const planError = ref(null);
+const showUpgradeConfirm = ref(false);
 const loadPlan = async () => {
   try { plan.value = await getTenantPlan(); }
   catch { /* non-fatal — the banner just won't show */ }
 };
 const handleUpgrade = async () => {
-  const price = plan.value?.pricePerEmployee || 1500;
-  const confirmed = window.confirm(
-    `Upgrade to Paid? Billing is ₦${price.toLocaleString()}/employee/month (currently ~₦${(price * (plan.value?.employeeCount || 0)).toLocaleString()}/mo). Note: automatic billing isn't wired up yet — this just lifts the employee cap.`
-  );
-  if (!confirmed) return;
   upgrading.value = true;
   planError.value = null;
   try {
     await upgradeTenantPlan();
     await loadPlan();
+    showUpgradeConfirm.value = false;
   } catch (err) {
     planError.value = err.response?.data?.message || 'Failed to upgrade plan.';
+    showUpgradeConfirm.value = false;
   } finally {
     upgrading.value = false;
   }
@@ -694,3 +721,8 @@ const formatDate = (dateStr) => {
   });
 };
 </script>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.15s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
