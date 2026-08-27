@@ -7,9 +7,8 @@
     <!-- Header -->
     <header class="max-w-7xl w-full mx-auto px-6 py-6 flex items-center justify-between relative z-10">
       <div class="flex items-center gap-3">
-        <div class="w-12 h-12 shrink-0 relative flex items-center justify-center">
-          <img :src="logoLight" alt="WorkDesk" class="w-12 h-12 object-contain block dark:hidden" />
-          <img :src="logoDark" alt="WorkDesk" class="w-12 h-12 object-contain hidden dark:block" />
+        <div class="w-12 h-12 shrink-0">
+          <LogoMark />
         </div>
         <span class="font-bold text-xl uppercase tracking-widest text-zinc-900 dark:text-white">WorkDesk</span>
       </div>
@@ -89,8 +88,7 @@
 
 <script setup>
 import { Sun, Moon, Layers, ShieldCheck, Building2 } from 'lucide-vue-next';
-import logoLight from '../assets/workdesk-logo-light.png';
-import logoDark from '../assets/workdesk-logo-dark.png';
+import LogoMark from './LogoMark.vue';
 
 defineProps({
   isDark: { type: Boolean, default: true }
