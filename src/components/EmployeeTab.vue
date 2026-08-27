@@ -15,6 +15,7 @@
           <span class="font-semibold">Free plan:</span>
           {{ plan.employeeCount }}/{{ plan.freeEmployeeLimit }} employees used
           <template v-if="plan.employeeCount >= plan.freeEmployeeLimit"> — limit reached, upgrade to add more.</template>
+          <span class="text-zinc-500 dark:text-zinc-400"> · ₦{{ (plan.pricePerEmployee || 1500).toLocaleString() }}/employee/month once upgraded (~₦{{ ((plan.pricePerEmployee || 1500) * plan.employeeCount).toLocaleString() }}/mo for your current headcount)</span>
         </span>
       </div>
       <button
@@ -456,6 +457,11 @@ const loadPlan = async () => {
   catch { /* non-fatal — the banner just won't show */ }
 };
 const handleUpgrade = async () => {
+  const price = plan.value?.pricePerEmployee || 1500;
+  const confirmed = window.confirm(
+    `Upgrade to Paid? Billing is ₦${price.toLocaleString()}/employee/month (currently ~₦${(price * (plan.value?.employeeCount || 0)).toLocaleString()}/mo). Note: automatic billing isn't wired up yet — this just lifts the employee cap.`
+  );
+  if (!confirmed) return;
   upgrading.value = true;
   planError.value = null;
   try {
