@@ -101,7 +101,7 @@ export function useApi() {
   // Impersonate: returns the same shape as a normal tenant login response
   // ({ _id, name, email, role, tenant, token }) so the caller can feed it
   // straight into setAuthUser/setActiveTenant, exactly like a real login.
-  const impersonateTenant = (tenantId) => call(async () => (await platformApi.post(`/platform/tenants/${tenantId}/impersonate`)).data.data);
+  const impersonateTenant = (tenantId, reason) => call(async () => (await platformApi.post(`/platform/tenants/${tenantId}/impersonate`, { reason })).data.data);
 
   const checkHealth = async () => {
     try {

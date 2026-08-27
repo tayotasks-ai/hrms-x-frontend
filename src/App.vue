@@ -522,7 +522,7 @@ const handleTwoFactorChanged = (enabled) => {
 // Bump this to force every employee to re-accept (e.g. after the notice text
 // changes materially) — anyone whose stored version doesn't match sees the
 // modal again on their next load, even if they'd already accepted before.
-const PRIVACY_NOTICE_VERSION = 'v2-2026-08';
+const PRIVACY_NOTICE_VERSION = 'v3-2026-08'; // bumped: discloses platform-admin support access (see PlatformView.vue impersonation)
 
 const needsPrivacyConsent = computed(() => {
   if (authUser.value?.role !== 'Employee') return false;

@@ -75,7 +75,7 @@
                 <span class="text-zinc-500">({{ t.onboarding.percent }}% onboarded)</span>
               </div>
             </div>
-            <button @click="confirmTenant = t" :disabled="impersonatingId === t._id"
+            <button @click="openConfirmModal(t)" :disabled="impersonatingId === t._id"
               class="shrink-0 flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-200 font-medium px-4 py-2 rounded text-xs font-mono disabled:opacity-50 transition">
               <LogIn class="w-3.5 h-3.5" />
               {{ impersonatingId === t._id ? 'Opening…' : 'Impersonate' }}
@@ -89,7 +89,7 @@
 
     <!-- ── Impersonation confirm modal ──────────────────────────────────────── -->
     <Transition name="fade">
-      <div v-if="confirmTenant" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="confirmTenant = null">
+      <div v-if="confirmTenant" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="closeConfirmModal">
         <div class="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6">
           <div class="flex items-center gap-2.5 text-amber-500 mb-3">
             <ShieldAlert class="w-5 h-5" />
@@ -98,15 +98,18 @@
           <p class="text-sm text-zinc-300 leading-relaxed">
             Log in as <strong class="text-zinc-100">{{ confirmTenant.name }}</strong>'s HR Admin?
           </p>
-          <p class="text-xs text-zinc-500 font-mono mt-2">
-            This is written to the audit log and expires in 45 minutes.
+          <p class="text-xs text-zinc-500 font-mono mt-2 mb-3">
+            Their HR Admins are notified automatically and this is written to the audit log. Session expires in 45 minutes.
           </p>
-          <div class="flex items-center gap-2 mt-5">
-            <button @click="confirmTenant = null"
+          <label class="text-xs text-zinc-500 font-mono">Reason (required)</label>
+          <textarea v-model="impersonateReason" rows="2" placeholder="e.g. helping them troubleshoot wallet setup"
+            class="w-full mt-1 bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 resize-none"></textarea>
+          <div class="flex items-center gap-2 mt-4">
+            <button @click="closeConfirmModal"
               class="flex-1 py-2 rounded text-sm font-medium text-zinc-300 border border-zinc-700 hover:bg-zinc-800 transition">
               Cancel
             </button>
-            <button @click="confirmImpersonate" :disabled="impersonatingId === confirmTenant._id"
+            <button @click="confirmImpersonate" :disabled="impersonatingId === confirmTenant._id || !impersonateReason.trim()"
               class="flex-1 py-2 rounded text-sm font-semibold bg-amber-500 text-zinc-950 hover:bg-amber-400 disabled:opacity-50 transition">
               {{ impersonatingId === confirmTenant._id ? 'Opening…' : 'Log in as HR Admin' }}
             </button>
@@ -139,6 +142,16 @@ const loading = ref(false);
 const loadError = ref('');
 const impersonatingId = ref(null);
 const confirmTenant = ref(null);
+const impersonateReason = ref('');
+
+const openConfirmModal = (tenant) => {
+  confirmTenant.value = tenant;
+  impersonateReason.value = '';
+};
+const closeConfirmModal = () => {
+  confirmTenant.value = null;
+  impersonateReason.value = '';
+};
 
 const handleLogin = async () => {
   loggingIn.value = true;
@@ -167,10 +180,10 @@ const loadTenants = async () => {
 
 const confirmImpersonate = async () => {
   const tenant = confirmTenant.value;
-  if (!tenant) return;
+  if (!tenant || !impersonateReason.value.trim()) return;
   impersonatingId.value = tenant._id;
   try {
-    const result = await impersonateTenant(tenant._id);
+    const result = await impersonateTenant(tenant._id, impersonateReason.value.trim());
     setAuthUser(result);
     setActiveTenant(result.tenant);
     localStorage.setItem('hrms_impersonating', JSON.stringify({
@@ -178,11 +191,11 @@ const confirmImpersonate = async () => {
       platformAdminName: result.impersonation.platformAdminName,
       expiresAt: result.impersonation.expiresAt,
     }));
-    confirmTenant.value = null;
+    closeConfirmModal();
     emit('impersonated');
   } catch (err) {
     loadError.value = err.response?.data?.message || 'Failed to impersonate this tenant.';
-    confirmTenant.value = null;
+    closeConfirmModal();
   } finally {
     impersonatingId.value = null;
   }
