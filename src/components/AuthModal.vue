@@ -9,7 +9,10 @@
       <div class="p-8 flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-center mb-6 gap-2">
-          <div class="w-8 h-8 bg-lime-500 rounded flex items-center justify-center font-bold text-black text-sm shadow-[0_0_15px_rgba(132,204,22,0.4)]">WD</div>
+          <div class="w-8 h-8 shrink-0 relative">
+            <img :src="logoLight" alt="WorkDesk" class="w-8 h-8 object-contain dark:hidden" />
+            <img :src="logoDark" alt="WorkDesk" class="w-8 h-8 object-contain hidden dark:block" />
+          </div>
           <span class="font-bold text-zinc-900 dark:text-zinc-100 text-lg uppercase tracking-wider">WorkDesk</span>
         </div>
 
@@ -180,6 +183,8 @@
 import { ref, watch } from 'vue';
 import { useApi } from '../composables/useApi';
 import { AlertCircle, CheckCircle2, X } from 'lucide-vue-next';
+import logoLight from '../assets/workdesk-logo-light.png';
+import logoDark from '../assets/workdesk-logo-dark.png';
 
 const props = defineProps({
   initialView: { type: String, default: 'login' },

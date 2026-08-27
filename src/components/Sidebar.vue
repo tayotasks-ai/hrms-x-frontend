@@ -2,7 +2,10 @@
   <aside class="w-64 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col h-screen sticky top-0 transition-colors">
     <!-- Brand -->
     <div class="h-16 flex items-center px-6 border-b border-zinc-200 dark:border-zinc-800 gap-2">
-      <div class="w-7 h-7 bg-lime-500 rounded flex items-center justify-center font-bold text-black text-sm">WD</div>
+      <div class="w-7 h-7 shrink-0 relative">
+        <img :src="logoLight" alt="WorkDesk" class="w-7 h-7 object-contain dark:hidden" />
+        <img :src="logoDark" alt="WorkDesk" class="w-7 h-7 object-contain hidden dark:block" />
+      </div>
       <div>
         <h1 class="font-bold text-zinc-900 dark:text-zinc-100 text-sm tracking-wide uppercase">WorkDesk</h1>
         <p class="text-[10px] text-zinc-500 tracking-wider uppercase">{{ userRole === 'Employee' ? 'Employee Portal' : 'HR Admin' }}</p>
@@ -64,6 +67,8 @@ import {
   UserMinus, AlertOctagon, HeartPulse, LifeBuoy, Briefcase, Network,
   BookOpen, UserCircle, GanttChartSquare, ScrollText, Timer, History, Landmark
 } from 'lucide-vue-next';
+import logoLight from '../assets/workdesk-logo-light.png';
+import logoDark from '../assets/workdesk-logo-dark.png';
 
 const props = defineProps({
   activeTab: { type: String, required: true },
