@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://workdesk.kumutech.com.ng/sitemap.xml

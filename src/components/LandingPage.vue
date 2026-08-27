@@ -36,7 +36,7 @@
       </h1>
 
       <p class="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mb-12 animate-fade-in-up leading-relaxed" style="animation-delay: 0.3s;">
-        22 integrated modules covering the entire employee lifecycle — from pre-boarding to exit. Designed with Nigerian regulatory compliance and enterprise-grade multi-tenancy.
+        23 HR modules covering the entire employee lifecycle — from pre-boarding to exit. Designed with Nigerian regulatory compliance and enterprise-grade multi-tenancy.
       </p>
 
       <div class="flex flex-col sm:flex-row items-center gap-4 animate-fade-in-up" style="animation-delay: 0.4s;">
@@ -54,7 +54,7 @@
           <div class="w-12 h-12 rounded-2xl bg-lime-500/20 flex items-center justify-center mb-6">
             <Layers class="w-6 h-6 text-lime-600 dark:text-lime-400" />
           </div>
-          <h3 class="text-2xl font-bold mb-3 text-zinc-900 dark:text-white">22 HR Modules</h3>
+          <h3 class="text-2xl font-bold mb-3 text-zinc-900 dark:text-white">23 HR Modules</h3>
           <p class="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">
             Payroll, Leave, Performance, Disciplinary, Assets, Onboarding, Exits, and more. All seamlessly talking to each other.
           </p>
