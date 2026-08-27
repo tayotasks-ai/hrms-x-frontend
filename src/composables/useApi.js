@@ -273,6 +273,8 @@ export function useApi() {
   const getRequisitions     = () => call(async () => (await api.get('/requisitions')).data.data);
   const createRequisition   = (d) => call(async () => (await api.post('/requisitions', d)).data.data);
   const updateRequisitionStatus = (id, status) => call(async () => (await api.put(`/requisitions/${id}`, { status })).data.data);
+  const getRequisitionAttachmentImageBlob = (reqId, attachmentId) =>
+    call(async () => (await api.get(`/requisitions/${reqId}/attachments/${attachmentId}/image`, { responseType: 'blob' })).data);
 
   // ── Redeployments ─────────────────────────────────────────────────────────
   const getRedeployments    = () => call(async () => (await api.get('/redeployments')).data.data);
@@ -394,7 +396,7 @@ export function useApi() {
     getOnboardings, createOnboarding, updateOnboardingTask, addOnboardingTask, updateOnboardingStage, deleteOnboarding,
     getProbations, createProbation, recordProbationOutcome,
     getEmploymentHistories, createEmploymentHistory,
-    getRequisitions, createRequisition, updateRequisitionStatus,
+    getRequisitions, createRequisition, updateRequisitionStatus, getRequisitionAttachmentImageBlob,
     getRedeployments, createRedeployment, completeRedeployment,
     getExits, initiateExit, updateClearanceTask, completeExit,
     getCases, createCase, addCaseAction,

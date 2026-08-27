@@ -60,6 +60,17 @@
               </td>
               <td class="py-4 px-6 text-zinc-600 dark:text-zinc-400 max-w-xs truncate" :title="req.description">
                 {{ req.description }}
+                <div v-if="req.attachments?.length" class="flex items-center gap-1 mt-1">
+                  <button
+                    v-for="(att, i) in req.attachments"
+                    :key="att._id"
+                    @click="viewAttachment(req._id, att)"
+                    :title="att.filename"
+                    class="p-1 rounded border border-zinc-200 dark:border-zinc-800 hover:border-lime-500 text-zinc-500 hover:text-lime-600 dark:hover:text-lime-400 transition cursor-pointer"
+                  >
+                    <Paperclip class="w-3 h-3" />
+                  </button>
+                </div>
               </td>
               <td class="py-4 px-6 text-zinc-700 dark:text-zinc-300 font-mono text-xs">
                 <div v-if="req.type === 'Expense'" class="font-semibold">
@@ -189,6 +200,25 @@
             ></textarea>
           </div>
 
+          <!-- Receipt / Invoice attachment (optional) -->
+          <div class="space-y-1">
+            <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Receipt / Invoice (optional)</label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              @change="handleFilesSelected"
+              class="w-full text-xs text-zinc-600 dark:text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-zinc-100 dark:file:bg-zinc-800 file:text-zinc-700 dark:file:text-zinc-200 hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700 cursor-pointer"
+            />
+            <p v-if="attachmentError" class="text-xs text-red-500">{{ attachmentError }}</p>
+            <ul v-if="pendingAttachments.length" class="text-xs text-zinc-500 space-y-0.5">
+              <li v-for="(a, i) in pendingAttachments" :key="i" class="flex items-center justify-between">
+                <span class="truncate">{{ a.filename }}</span>
+                <button type="button" @click="pendingAttachments.splice(i, 1)" class="text-red-500 hover:text-red-400 ml-2">Remove</button>
+              </li>
+            </ul>
+          </div>
+
           <!-- Expense Fields -->
           <template v-if="form.type === 'Expense'">
             <div class="grid grid-cols-2 gap-4">
@@ -287,7 +317,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useApi } from '../composables/useApi';
-import { FileText, PlusCircle, Check, X } from 'lucide-vue-next';
+import { FileText, PlusCircle, Check, X, Paperclip } from 'lucide-vue-next';
 
 const props = defineProps({
   requisitions: {
@@ -302,11 +332,53 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const { createRequisition, updateRequisitionStatus } = useApi();
+const { createRequisition, updateRequisitionStatus, getRequisitionAttachmentImageBlob } = useApi();
 
 const showRequestModal = ref(false);
 const submitting = ref(false);
 const formError = ref(null);
+const pendingAttachments = ref([]); // [{ imageBase64, contentType, filename }]
+const attachmentError = ref(null);
+
+// Matches the backend's MAX_ATTACHMENT_BYTES ceiling (6MB) — checked
+// client-side too so a huge photo fails fast instead of after upload.
+const MAX_ATTACHMENT_BYTES = 6 * 1024 * 1024;
+
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
+
+const handleFilesSelected = async (event) => {
+  attachmentError.value = null;
+  const files = Array.from(event.target.files || []);
+  for (const file of files) {
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      attachmentError.value = `${file.name} is too large (max 6MB) — try a lower-resolution photo.`;
+      continue;
+    }
+    try {
+      const imageBase64 = await fileToBase64(file);
+      pendingAttachments.value.push({ imageBase64, contentType: file.type || 'image/jpeg', filename: file.name });
+    } catch {
+      attachmentError.value = `Couldn't read ${file.name}.`;
+    }
+  }
+  event.target.value = ''; // allow re-selecting the same file name later
+};
+
+const viewAttachment = async (requisitionId, attachment) => {
+  try {
+    const blob = await getRequisitionAttachmentImageBlob(requisitionId, attachment._id);
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (err) {
+    alert(err.response?.data?.message || 'Failed to load this attachment.');
+  }
+};
 
 const initialForm = {
   employeeId: '',
@@ -331,6 +403,8 @@ const closeModal = () => {
   showRequestModal.value = false;
   form.value = { ...initialForm };
   formError.value = null;
+  pendingAttachments.value = [];
+  attachmentError.value = null;
 };
 
 const formatCurrency = (val) => {
@@ -370,7 +444,8 @@ const handleSubmit = async () => {
       employeeId: form.value.employeeId,
       type: form.value.type,
       description: form.value.description,
-      status: 'Pending'
+      status: 'Pending',
+      attachments: pendingAttachments.value,
     };
 
     if (form.value.type === 'Expense') {
