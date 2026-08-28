@@ -42,12 +42,63 @@
           <span>Remittance Reports</span>
         </button>
         <button
+          @click="openBulkGenerateModal"
+          class="flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
+        >
+          <Users class="w-4 h-4" />
+          <span>Generate for Period</span>
+        </button>
+        <button
           @click="showGenerateModal = true"
           class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-lime-500 text-black font-semibold px-4 py-2 rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer"
         >
           <Receipt class="w-4 h-4" />
           <span>Process Payroll</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Bulk Generate Payslips Modal -->
+    <div
+      v-if="showBulkGenerateModal"
+      class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      @click.self="closeBulkGenerateModal"
+    >
+      <div class="w-full max-w-sm bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 space-y-4">
+        <div>
+          <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Generate Payslips for Period</h3>
+          <p class="text-xs text-zinc-500 mt-1">Creates a Draft payslip for every active employee who doesn't already have one for this period, using their current salary. Review and adjust individual slips (allowances, deductions) before paying.</p>
+        </div>
+
+        <div v-if="bulkGenerateError" class="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
+          {{ bulkGenerateError }}
+        </div>
+        <div v-if="bulkGenerateResult" class="p-3 bg-lime-50 dark:bg-lime-950/60 border border-lime-200 dark:border-lime-900 text-lime-700 dark:text-lime-400 rounded text-xs font-mono">
+          {{ bulkGenerateResult }}
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Period</label>
+          <input
+            v-model="bulkGeneratePeriod"
+            type="text"
+            placeholder="e.g. May 2026"
+            class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition"
+          />
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button @click="closeBulkGenerateModal" class="flex-1 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded text-sm hover:bg-zinc-100 transition">
+            Close
+          </button>
+          <button
+            @click="runBulkGenerate"
+            :disabled="bulkGenerating || !bulkGeneratePeriod.trim()"
+            class="flex-1 py-2 bg-lime-500 text-black font-semibold rounded text-sm hover:bg-lime-600 active:scale-[0.98] transition disabled:opacity-50"
+          >
+            {{ bulkGenerating ? 'Generating…' : 'Generate' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -636,7 +687,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Eye, X, Receipt, Download, Banknote, ShieldCheck, FileSpreadsheet } from 'lucide-vue-next';
+import { Eye, X, Receipt, Download, Banknote, ShieldCheck, FileSpreadsheet, Users } from 'lucide-vue-next';
 import { estimatePayroll } from '../utils/payrollEstimate';
 import { toCsv, downloadCsv } from '../utils/csv';
 
@@ -662,7 +713,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh']);
 
 const {
-  createPayslip, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
+  createPayslip, bulkGeneratePayslips, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
   getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval, getWallet,
 } = useApi();
 
@@ -685,6 +736,11 @@ const loadWalletBalance = async () => {
 };
 
 const showGenerateModal = ref(false);
+const showBulkGenerateModal = ref(false);
+const bulkGeneratePeriod = ref('');
+const bulkGenerating = ref(false);
+const bulkGenerateError = ref(null);
+const bulkGenerateResult = ref(null);
 const showInvoiceModal = ref(false);
 const submitting = ref(false);
 const formError = ref(null);
@@ -934,6 +990,33 @@ const closeGenerateModal = () => {
   showGenerateModal.value = false;
   form.value = { ...initialForm };
   formError.value = null;
+};
+
+const openBulkGenerateModal = () => {
+  showBulkGenerateModal.value = true;
+  bulkGeneratePeriod.value = '';
+  bulkGenerateError.value = null;
+  bulkGenerateResult.value = null;
+};
+
+const closeBulkGenerateModal = () => {
+  showBulkGenerateModal.value = false;
+};
+
+const runBulkGenerate = async () => {
+  if (!bulkGeneratePeriod.value.trim()) return;
+  bulkGenerating.value = true;
+  bulkGenerateError.value = null;
+  bulkGenerateResult.value = null;
+  try {
+    const result = await bulkGeneratePayslips(bulkGeneratePeriod.value.trim());
+    bulkGenerateResult.value = result.message;
+    emit('refresh');
+  } catch (err) {
+    bulkGenerateError.value = err.response?.data?.message || err.message || 'Failed to generate payslips.';
+  } finally {
+    bulkGenerating.value = false;
+  }
 };
 
 const openInvoice = (slip) => {

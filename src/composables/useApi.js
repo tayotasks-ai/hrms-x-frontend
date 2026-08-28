@@ -200,6 +200,7 @@ export function useApi() {
   // ── Payslips ──────────────────────────────────────────────────────────────
   const getPayslips         = () => call(async () => (await api.get('/payslips')).data.data);
   const createPayslip       = (d) => call(async () => (await api.post('/payslips', d)).data.data);
+  const bulkGeneratePayslips = (period) => call(async () => (await api.post('/payslips/bulk-generate', { period })).data);
   const downloadPayslipPdf  = (id) => call(async () => (await api.get(`/payslips/${id}/pdf`, { responseType: 'blob' })).data);
   const downloadRemittanceReport = (period, type) => call(async () => (await api.get('/payslips/remittance', { params: { period, type }, responseType: 'blob' })).data);
   const payPayslip          = (id) => call(async () => (await api.post(`/payslips/${id}/pay`)).data);
@@ -385,7 +386,7 @@ export function useApi() {
     getEmployees, getDirectoryLite, getMe, getEmployee, createEmployee, bulkCreateEmployees, updateEmployee, updateEmployeeManager,
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getLeaves, createLeave, updateLeaveStatus, getLeavePolicy, updateLeavePolicy,
-    getPayslips, createPayslip, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
+    getPayslips, createPayslip, bulkGeneratePayslips, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
     getTenantPlan, upgradeTenantPlan,
     getWallet, setupWallet, setWalletDualApproval, setPayrollSchedule, getWalletTransactions,
     getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval,
