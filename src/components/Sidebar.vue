@@ -33,6 +33,24 @@
       </template>
     </nav>
 
+    <!-- Desktop agent download -->
+    <div class="px-3 py-3 border-t border-zinc-200 dark:border-zinc-800 relative">
+      <button @click="showDownload = !showDownload" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded transition text-left">
+        <Download class="w-4 h-4" />
+        <span>Get Desktop App</span>
+      </button>
+      <Transition name="fade">
+        <div v-if="showDownload" class="absolute bottom-full left-3 right-3 mb-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl p-2 z-20">
+          <p class="text-[9px] font-mono text-zinc-400 uppercase tracking-widest px-2 pt-1 pb-2">WorkDesk Agent v1.0.0</p>
+          <a v-for="opt in downloadOptions" :key="opt.label" :href="opt.url"
+            class="flex items-center gap-2.5 px-2 py-2 text-xs text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition">
+            <component :is="opt.icon" class="w-3.5 h-3.5 shrink-0 text-lime-600 dark:text-lime-400" />
+            <span>{{ opt.label }}</span>
+          </a>
+        </div>
+      </Transition>
+    </div>
+
     <!-- Logout -->
     <div class="px-3 py-3 border-t border-zinc-200 dark:border-zinc-800">
       <button @click="$emit('logout')" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-zinc-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded transition text-left">
@@ -59,14 +77,23 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import {
   LayoutDashboard, Users, CalendarOff, CreditCard, Building2, FileText,
   CheckSquare, ShieldCheck, LogOut, ClipboardList, ArrowRightLeft,
   UserMinus, AlertOctagon, HeartPulse, LifeBuoy, Briefcase, Network,
-  BookOpen, UserCircle, GanttChartSquare, ScrollText, Timer, History, Landmark
+  BookOpen, UserCircle, GanttChartSquare, ScrollText, Timer, History, Landmark,
+  Download, Apple, MonitorSmartphone, Terminal
 } from 'lucide-vue-next';
 import LogoMark from './LogoMark.vue';
+
+const showDownload = ref(false);
+const AGENT_RELEASE_BASE = 'https://github.com/tayotasks-ai/hrmx-desktop-app/releases/latest/download';
+const downloadOptions = [
+  { label: 'macOS (.dmg)', icon: Apple, url: `${AGENT_RELEASE_BASE}/WorkDesk-Agent-1.0.0-arm64.dmg` },
+  { label: 'Windows (.exe)', icon: MonitorSmartphone, url: `${AGENT_RELEASE_BASE}/WorkDesk-Agent-Setup-1.0.0.exe` },
+  { label: 'Linux (.AppImage)', icon: Terminal, url: `${AGENT_RELEASE_BASE}/WorkDesk-Agent-1.0.0.AppImage` },
+];
 
 const props = defineProps({
   activeTab: { type: String, required: true },
@@ -134,3 +161,8 @@ const navItems = computed(() =>
   props.userRole === 'Employee' ? essItems : hrItems
 );
 </script>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.12s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
