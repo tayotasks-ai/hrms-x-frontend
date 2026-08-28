@@ -7,6 +7,7 @@
         <p class="text-xs text-zinc-500 mt-0.5">Process salaries, log deductions/allowances, and generate employee payslips.</p>
         <p v-if="authUser?.role !== 'Employee' && walletBalance !== null" class="text-xs font-mono text-zinc-600 dark:text-zinc-400 mt-1.5">
           Payroll wallet: <span class="font-semibold text-zinc-800 dark:text-zinc-200">&#8358;{{ walletBalance.toLocaleString() }}</span>
+          <span v-if="isTestAccount" class="ml-1.5 text-sky-600 dark:text-sky-400">(test account — no payroll fees)</span>
         </p>
       </div>
       <div v-if="authUser?.role !== 'Employee'" class="w-full sm:w-auto flex items-center gap-2">
@@ -685,6 +686,33 @@
 
       </div>
     </div>
+
+    <!-- Confirm Payment Modal (replaces window.confirm) -->
+    <div
+      v-if="confirmState"
+      class="fixed inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      @click.self="closeConfirm"
+    >
+      <div class="w-full max-w-sm bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-2xl overflow-hidden">
+        <div class="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
+          <Banknote class="w-4 h-4 text-lime-600 dark:text-lime-400" />
+          <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Confirm Payment</h3>
+        </div>
+        <div class="p-6 space-y-2 text-sm">
+          <p v-for="(line, i) in confirmState.lines" :key="i" :class="i === 0 ? 'text-zinc-800 dark:text-zinc-200 font-semibold' : 'text-zinc-600 dark:text-zinc-400 font-mono text-xs'">
+            {{ line }}
+          </p>
+        </div>
+        <div class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-end gap-3">
+          <button @click="closeConfirm" class="px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded text-sm hover:bg-zinc-855 transition cursor-pointer">
+            Cancel
+          </button>
+          <button @click="confirmProceed" class="px-4 py-2 bg-lime-500 text-black font-semibold rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -734,9 +762,16 @@ const estimateFee = (netPay) => {
 };
 
 const walletBalance = ref(null);
+// Test accounts (Tenant.isTestAccount, set from the platform dashboard) pay
+// no Paystack/stamp/platform fees on payroll transfers — see
+// payslipPaymentController.js payOnePayslip. Only net pay is debited.
+const isTestAccount = ref(false);
 const loadWalletBalance = async () => {
-  try { walletBalance.value = (await getWallet()).balance; }
-  catch { /* non-fatal — the balance chip just won't show */ }
+  try {
+    const wallet = await getWallet();
+    walletBalance.value = wallet.balance;
+    isTestAccount.value = !!wallet.isTestAccount;
+  } catch { /* non-fatal — the balance chip just won't show */ }
 };
 
 const showGenerateModal = ref(false);
@@ -750,6 +785,16 @@ const submitting = ref(false);
 const formError = ref(null);
 const selectedSlip = ref(null);
 const downloadingPdf = ref(false);
+
+// ── Confirm modal (replaces window.confirm for Pay Now / Pay Selected) ──────
+const confirmState = ref(null); // { lines: string[], onConfirm: () => void }
+const openConfirm = (lines, onConfirm) => { confirmState.value = { lines, onConfirm }; };
+const closeConfirm = () => { confirmState.value = null; };
+const confirmProceed = () => {
+  const cb = confirmState.value?.onConfirm;
+  closeConfirm();
+  if (cb) cb();
+};
 
 // ── Payroll disbursement (Paystack) ──────────────────────────────────────────
 const selectedIds = ref([]);
@@ -862,17 +907,24 @@ const queueOtpIfNeeded = (requiresOtp, payslipId) => {
   if (!otpModalPayslipId.value) openOtpModal(otpQueue.value.shift());
 };
 
-const payNow = async (slip) => {
-  const fee = estimateFee(slip.netPay);
-  const ok = window.confirm(
-    `Pay ${slip.employeeId?.name || 'this employee'} ₦${slip.netPay.toLocaleString()} net pay?\n\n` +
-    `+ ₦${fee.paystackFee} Paystack fee\n` +
-    (fee.stampDuty ? `+ ₦${fee.stampDuty} stamp duty\n` : '') +
-    `+ ₦${fee.markup} platform fee\n` +
-    `= ₦${(slip.netPay + fee.total).toLocaleString()} debited from the payroll wallet (estimate).`
-  );
-  if (!ok) return;
+const payNow = (slip) => {
+  const fee = isTestAccount.value ? { paystackFee: 0, stampDuty: 0, markup: 0, total: 0 } : estimateFee(slip.netPay);
+  const lines = [
+    `Pay ${slip.employeeId?.name || 'this employee'} ₦${slip.netPay.toLocaleString()} net pay?`,
+  ];
+  if (isTestAccount.value) {
+    lines.push('Test account — no Paystack, stamp duty, or platform fees apply.');
+  } else {
+    lines.push(`+ ₦${fee.paystackFee} Paystack fee`);
+    if (fee.stampDuty) lines.push(`+ ₦${fee.stampDuty} stamp duty`);
+    lines.push(`+ ₦${fee.markup} platform fee`);
+  }
+  lines.push(`= ₦${(slip.netPay + fee.total).toLocaleString()} debited from the payroll wallet${isTestAccount.value ? '' : ' (estimate)'}.`);
 
+  openConfirm(lines, () => doPayNow(slip));
+};
+
+const doPayNow = async (slip) => {
   paymentError.value = null;
   paymentInfo.value = null;
   payingIds.value = [...payingIds.value, slip._id];
@@ -893,19 +945,26 @@ const payNow = async (slip) => {
   }
 };
 
-const payBatchNow = async () => {
+const payBatchNow = () => {
   if (selectedIds.value.length === 0) return;
 
   const selectedSlips = props.payslips.filter(s => selectedIds.value.includes(s._id));
   const netTotal = selectedSlips.reduce((sum, s) => sum + s.netPay, 0);
-  const feeTotal = selectedSlips.reduce((sum, s) => sum + estimateFee(s.netPay).total, 0);
-  const ok = window.confirm(
-    `Pay ${selectedSlips.length} selected payslip(s)?\n\n` +
-    `₦${netTotal.toLocaleString()} net pay + ₦${feeTotal.toLocaleString()} in Paystack/stamp/platform fees\n` +
-    `= ₦${(netTotal + feeTotal).toLocaleString()} debited from the payroll wallet (estimate, paid in order — if the wallet runs short partway through, the rest are skipped and you'll be notified).`
-  );
-  if (!ok) return;
+  const feeTotal = isTestAccount.value ? 0 : selectedSlips.reduce((sum, s) => sum + estimateFee(s.netPay).total, 0);
 
+  const lines = [`Pay ${selectedSlips.length} selected payslip(s)?`];
+  if (isTestAccount.value) {
+    lines.push(`₦${netTotal.toLocaleString()} net pay — test account, no Paystack/stamp/platform fees apply.`);
+    lines.push(`= ₦${netTotal.toLocaleString()} debited from the payroll wallet, paid in order.`);
+  } else {
+    lines.push(`₦${netTotal.toLocaleString()} net pay + ₦${feeTotal.toLocaleString()} in Paystack/stamp/platform fees`);
+    lines.push(`= ₦${(netTotal + feeTotal).toLocaleString()} debited from the payroll wallet (estimate, paid in order — if the wallet runs short partway through, the rest are skipped and you'll be notified).`);
+  }
+
+  openConfirm(lines, doPayBatchNow);
+};
+
+const doPayBatchNow = async () => {
   paymentError.value = null;
   paymentInfo.value = null;
   batchPaying.value = true;
