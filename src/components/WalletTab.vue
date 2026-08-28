@@ -12,6 +12,11 @@
         <span v-if="loading">&hellip;</span>
         <span v-else>&#8358;{{ (wallet?.balance || 0).toLocaleString() }}</span>
       </p>
+      <div v-if="!loading && settlementNote" class="pt-1">
+        <p :class="settlementNote.fullyAvailable ? 'text-lime-600 dark:text-lime-400' : 'text-amber-600 dark:text-amber-400'" class="text-xs font-mono">
+          {{ settlementNote.text }}
+        </p>
+      </div>
     </div>
 
     <div v-if="errorMsg" class="p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded text-xs font-mono">
@@ -157,7 +162,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
 import { Landmark, Link as LinkIcon, Copy } from 'lucide-vue-next';
 
@@ -256,6 +261,30 @@ const toggleDualApproval = async () => {
 };
 
 const formatDate = (d) => d ? new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+const formatShortDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+// Wallet Balance above is our own ledger — money that's landed in the
+// dedicated account and been recorded, but not necessarily payable out yet.
+// confirmedAvailable (from GET /wallet, capped at this tenant's own ledger
+// balance — see walletController.js) is what's actually spendable on
+// Paystack right now. When the two differ, some of the balance is still
+// mid-settlement; nextSettlementDate is a rough "check back around then"
+// hint, not a guarantee. Both fields come back null if the live check
+// couldn't run (e.g. Paystack unreachable) — in that case we say nothing
+// rather than guess.
+const settlementNote = computed(() => {
+  const w = wallet.value;
+  if (!w || w.confirmedAvailable === null || w.confirmedAvailable === undefined) return null;
+  if (w.confirmedAvailable >= (w.balance || 0)) {
+    return { fullyAvailable: true, text: 'Fully available for payroll.' };
+  }
+  const pending = (w.balance || 0) - w.confirmedAvailable;
+  const dateText = w.nextSettlementDate ? ` — expected available ${formatShortDate(w.nextSettlementDate)}` : '';
+  return {
+    fullyAvailable: false,
+    text: `₦${pending.toLocaleString()} is still settling with Paystack and can't be paid out yet${dateText}.`,
+  };
+});
 
 onMounted(load);
 </script>

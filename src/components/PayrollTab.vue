@@ -8,6 +8,7 @@
         <p v-if="authUser?.role !== 'Employee' && walletBalance !== null" class="text-xs font-mono text-zinc-600 dark:text-zinc-400 mt-1.5">
           Payroll wallet: <span class="font-semibold text-zinc-800 dark:text-zinc-200">&#8358;{{ walletBalance.toLocaleString() }}</span>
           <span v-if="isTestAccount" class="ml-1.5 text-sky-600 dark:text-sky-400">(test account — no payroll fees)</span>
+          <span v-if="pendingSettlement > 0" class="ml-1.5 text-amber-600 dark:text-amber-400">(&#8358;{{ pendingSettlement.toLocaleString() }} still settling — see Wallet tab)</span>
         </p>
       </div>
       <div v-if="authUser?.role !== 'Employee'" class="w-full sm:w-auto flex items-center gap-2">
@@ -766,11 +767,19 @@ const walletBalance = ref(null);
 // no Paystack/stamp/platform fees on payroll transfers — see
 // payslipPaymentController.js payOnePayslip. Only net pay is debited.
 const isTestAccount = ref(false);
+// How much of walletBalance is still mid-settlement with Paystack and
+// can't actually be paid out yet — see walletController.js getWallet.
+// null when the live check couldn't run; a positive number is what's not
+// yet spendable (walletBalance minus confirmedAvailable).
+const pendingSettlement = ref(0);
 const loadWalletBalance = async () => {
   try {
     const wallet = await getWallet();
     walletBalance.value = wallet.balance;
     isTestAccount.value = !!wallet.isTestAccount;
+    pendingSettlement.value = (wallet.confirmedAvailable === null || wallet.confirmedAvailable === undefined)
+      ? 0
+      : Math.max(0, (wallet.balance || 0) - wallet.confirmedAvailable);
   } catch { /* non-fatal — the balance chip just won't show */ }
 };
 
