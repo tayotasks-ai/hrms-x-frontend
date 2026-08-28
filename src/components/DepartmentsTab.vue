@@ -2,7 +2,7 @@
   <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
     
     <!-- Left: Department Form -->
-    <div class="lg:col-span-1 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6 flex flex-col h-fit sticky top-24">
+    <div class="lg:col-span-1 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6 flex flex-col h-fit">
       <div class="flex items-center gap-2 pb-4 border-b border-zinc-200 dark:border-zinc-800 mb-6">
         <Building2 class="w-4 h-4 text-lime-600 dark:text-lime-400" />
         <div>
@@ -93,7 +93,7 @@
     </div>
 
     <!-- Right: Departments List -->
-    <div class="lg:col-span-3 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6 min-h-[70vh]">
+    <div class="lg:col-span-3 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6">
       <div class="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-800 mb-6">
         <div>
           <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Department Hierarchy</h3>
