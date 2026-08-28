@@ -59,15 +59,26 @@
         <p class="text-[11px] text-zinc-500 mt-2">Any transfer into this account lands in your wallet automatically, usually within a minute or two.</p>
       </div>
 
-      <button
-        v-else
-        @click="handleSetup"
-        :disabled="busy"
-        class="flex items-center gap-2 bg-lime-500 text-black font-semibold px-4 py-2 rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition disabled:opacity-50"
-      >
-        <LinkIcon class="w-4 h-4" />
-        <span>{{ busy ? 'Setting up…' : 'Set Up Wallet' }}</span>
-      </button>
+      <div v-else class="space-y-2">
+        <div class="space-y-1">
+          <label class="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Phone Number</label>
+          <input
+            v-model="setupPhone"
+            type="tel"
+            placeholder="e.g. 08012345678"
+            class="w-full max-w-xs px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-lime-500 transition"
+          />
+          <p class="text-[11px] text-zinc-500">Paystack requires a phone number to issue the dedicated account.</p>
+        </div>
+        <button
+          @click="handleSetup"
+          :disabled="busy || !setupPhone.trim()"
+          class="flex items-center gap-2 bg-lime-500 text-black font-semibold px-4 py-2 rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition disabled:opacity-50"
+        >
+          <LinkIcon class="w-4 h-4" />
+          <span>{{ busy ? 'Setting up…' : 'Set Up Wallet' }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Payroll schedule -->
@@ -162,6 +173,7 @@ const errorMsg = ref(null);
 const successMsg = ref(null);
 const savingDualApproval = ref(false);
 const savingSchedule = ref(false);
+const setupPhone = ref('');
 
 const load = async () => {
   loading.value = true;
@@ -181,7 +193,7 @@ const handleSetup = async () => {
   errorMsg.value = null;
   successMsg.value = null;
   try {
-    await setupWallet();
+    await setupWallet(setupPhone.value.trim());
     successMsg.value = 'Wallet set up — fund it using the account details below.';
     await load();
   } catch (err) {

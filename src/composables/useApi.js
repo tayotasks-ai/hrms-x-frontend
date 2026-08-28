@@ -212,7 +212,7 @@ export function useApi() {
 
   // ── Payroll Wallet ─────────────────────────────────────────────────────────
   const getWallet             = () => call(async () => (await api.get('/wallet')).data.data);
-  const setupWallet           = () => call(async () => (await api.post('/wallet/setup')).data);
+  const setupWallet           = (phone) => call(async () => (await api.post('/wallet/setup', { phone })).data);
   const setWalletDualApproval = (enabled) => call(async () => (await api.put('/wallet/dual-approval', { enabled })).data);
   const setPayrollSchedule    = (d) => call(async () => (await api.put('/wallet/schedule', d)).data.data);
   const getWalletTransactions = () => call(async () => (await api.get('/wallet/transactions')).data.data);
