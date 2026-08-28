@@ -124,7 +124,10 @@
             </div>
             <div class="space-y-1">
               <label class="text-[10px] uppercase tracking-wider text-zinc-500">Nationality</label>
-              <input v-model="form.nationality" type="text" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition" />
+              <select v-model="form.nationality" class="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded text-sm text-zinc-900 dark:text-zinc-100 focus:border-lime-500 outline-none transition">
+                <option value="">Select Nationality</option>
+                <option v-for="n in nationalityOptions" :key="n" :value="n">{{ n }}</option>
+              </select>
             </div>
           </div>
         </div>
@@ -346,6 +349,24 @@ const verifyAccount = async () => {
     verifying.value = false;
   }
 };
+
+// Nigerian first since that's the overwhelming majority for this product's
+// customer base, then other common nationalities for foreign hires. If a
+// stored value doesn't match the list (older free-text data, or a less
+// common nationality), it's appended below so editing never silently blanks
+// it out.
+const NATIONALITY_LIST = [
+  'Nigerian', 'Ghanaian', 'Kenyan', 'South African', 'Beninese', 'Togolese',
+  'Cameroonian', 'Senegalese', 'Ivorian', 'Egyptian', 'British', 'American',
+  'Canadian', 'Indian', 'Chinese', 'Lebanese', 'Other',
+];
+const nationalityOptions = computed(() => {
+  const current = form.value.nationality;
+  if (current && !NATIONALITY_LIST.includes(current)) {
+    return [current, ...NATIONALITY_LIST];
+  }
+  return NATIONALITY_LIST;
+});
 
 const form = ref({
   email: '',
