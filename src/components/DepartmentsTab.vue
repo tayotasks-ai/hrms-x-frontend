@@ -93,7 +93,7 @@
     </div>
 
     <!-- Right: Departments List -->
-    <div class="lg:col-span-3 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6">
+    <div class="lg:col-span-3 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6 min-h-[70vh]">
       <div class="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-800 mb-6">
         <div>
           <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Department Hierarchy</h3>
