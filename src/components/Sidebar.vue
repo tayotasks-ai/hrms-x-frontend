@@ -1,5 +1,21 @@
 <template>
-  <aside class="w-64 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col h-screen sticky top-0 transition-colors">
+  <!-- Mobile backdrop — only meaningful below md, where the sidebar becomes
+       an off-canvas drawer. md:hidden keeps it out of the way entirely on
+       desktop, where the sidebar is always in-flow and this never renders
+       visibly regardless of mobileOpen. -->
+  <div
+    v-if="mobileOpen"
+    class="fixed inset-0 bg-black/50 z-40 md:hidden"
+    @click="$emit('close')"
+  ></div>
+
+  <aside
+    :class="[
+      mobileOpen ? 'translate-x-0' : '-translate-x-full',
+      'fixed inset-y-0 left-0 z-50 w-64 md:static md:translate-x-0 md:z-auto',
+      'border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col h-screen md:sticky md:top-0 transition-transform md:transition-colors duration-200 ease-in-out'
+    ]"
+  >
     <!-- Brand -->
     <div class="h-16 flex items-center px-6 border-b border-zinc-200 dark:border-zinc-800 gap-2">
       <div class="w-9 h-9 shrink-0">
@@ -9,6 +25,9 @@
         <h1 class="font-bold text-zinc-900 dark:text-zinc-100 text-sm tracking-wide uppercase">WorkDesk</h1>
         <p class="text-[10px] text-zinc-500 tracking-wider uppercase">{{ userRole === 'Employee' ? 'Employee Portal' : 'HR Admin' }}</p>
       </div>
+      <button @click="$emit('close')" class="ml-auto md:hidden p-1 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+        <X class="w-5 h-5" />
+      </button>
     </div>
 
     <!-- Nav -->
@@ -19,7 +38,7 @@
         <!-- Nav button -->
         <button
           v-else
-          @click="$emit('update:activeTab', item.id)"
+          @click="$emit('update:activeTab', item.id); $emit('close')"
           :class="[
             activeTab === item.id
               ? 'bg-lime-50 dark:bg-lime-950/30 text-zinc-900 dark:text-zinc-50 border-l-2 border-lime-500'
@@ -83,7 +102,7 @@ import {
   CheckSquare, ShieldCheck, LogOut, ClipboardList, ArrowRightLeft,
   UserMinus, AlertOctagon, HeartPulse, LifeBuoy, Briefcase, Network,
   BookOpen, UserCircle, GanttChartSquare, ScrollText, Timer, History, Landmark,
-  Download, Apple, MonitorSmartphone, Terminal
+  Download, Apple, MonitorSmartphone, Terminal, X
 } from 'lucide-vue-next';
 import LogoMark from './LogoMark.vue';
 
@@ -99,9 +118,10 @@ const props = defineProps({
   activeTab: { type: String, required: true },
   apiHealth: { type: Object, required: true },
   userRole:  { type: String, default: 'Employee' },
+  mobileOpen: { type: Boolean, default: false },
 });
 
-defineEmits(['update:activeTab', 'logout']);
+defineEmits(['update:activeTab', 'logout', 'close']);
 
 // HR Admin sees everything; Employee sees only ESS-relevant tabs
 const hrItems = [

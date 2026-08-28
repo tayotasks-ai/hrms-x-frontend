@@ -17,7 +17,7 @@
           <Sun v-if="isDark" class="w-5 h-5" />
           <Moon v-else class="w-5 h-5" />
         </button>
-        <button @click="$emit('open-auth')" class="hidden sm:inline-flex px-6 py-2.5 rounded-full font-semibold text-sm transition-all hover:scale-105 active:scale-95 bg-zinc-900 text-white dark:bg-white dark:text-black shadow-lg">
+        <button @click="$emit('open-auth')" class="inline-flex px-4 sm:px-6 py-2.5 rounded-full font-semibold text-sm transition-all hover:scale-105 active:scale-95 bg-zinc-900 text-white dark:bg-white dark:text-black shadow-lg">
           Sign In
         </button>
       </div>

@@ -28,24 +28,29 @@
       v-model:activeTab="activeTab"
       :apiHealth="apiHealth"
       :userRole="authUser?.role"
+      :mobileOpen="sidebarOpen"
+      @close="sidebarOpen = false"
       @logout="handleLogout"
     />
 
     <main class="flex-1 flex flex-col min-w-0">
       <!-- Top bar -->
-      <header class="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-6 flex items-center justify-between sticky top-0 z-40 transition-colors">
-        <div class="flex items-center gap-3">
-          <button @click="toggleTheme" class="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-900 transition text-zinc-500">
+      <header class="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40 transition-colors gap-2">
+        <div class="flex items-center gap-1.5 sm:gap-3 min-w-0">
+          <button @click="sidebarOpen = true" class="p-1.5 -ml-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-900 transition text-zinc-500 md:hidden shrink-0" title="Menu">
+            <Menu class="w-4 h-4" />
+          </button>
+          <button @click="toggleTheme" class="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-900 transition text-zinc-500 shrink-0">
             <Sun v-if="isDark" class="w-4 h-4" /><Moon v-else class="w-4 h-4" />
           </button>
-          <div class="flex items-center gap-2 border-l border-zinc-200 dark:border-zinc-800 pl-3">
-            <span class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">WorkDesk</span>
-            <span class="text-zinc-300 dark:text-zinc-700">/</span>
-            <span class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{{ currentTabLabel }}</span>
+          <div class="hidden sm:flex items-center gap-2 border-l border-zinc-200 dark:border-zinc-800 pl-3 min-w-0">
+            <span class="text-[10px] font-mono text-zinc-400 uppercase tracking-widest shrink-0">WorkDesk</span>
+            <span class="text-zinc-300 dark:text-zinc-700 shrink-0">/</span>
+            <span class="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">{{ currentTabLabel }}</span>
           </div>
         </div>
-        <div class="flex items-center gap-3">
-          <span class="text-xs font-mono text-zinc-500">{{ activeTenant?.name }}</span>
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+          <span class="hidden lg:inline text-xs font-mono text-zinc-500">{{ activeTenant?.name }}</span>
           <NotificationBell @navigate="activeTab = $event" />
           <button
             @click="showChangePasswordModal = true"
@@ -58,7 +63,7 @@
               </span>
               <span v-if="authUser?.isDefaultPassword" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white dark:border-zinc-950"></span>
             </span>
-            <span class="text-right">
+            <span class="hidden sm:block text-right">
               <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{{ authUser?.name }}</p>
               <p class="text-[10px] font-mono text-zinc-400">{{ authUser?.role }}</p>
             </span>
@@ -313,7 +318,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useApi } from './composables/useApi';
 import { useActivityTracker } from './composables/useActivityTracker';
-import { AlertCircle, Sun, Moon } from 'lucide-vue-next';
+import { AlertCircle, Sun, Moon, Menu } from 'lucide-vue-next';
 
 // Components
 import Sidebar from './components/Sidebar.vue';
@@ -384,6 +389,7 @@ const hasStoredSession = () => {
 const showLanding   = ref(!hasStoredSession());
 const showAuthModal = ref(false);
 const activeTab     = ref('dashboard');
+const sidebarOpen   = ref(false);
 const isRefreshing  = ref(false);
 const isDark        = ref(true);
 const authModalView       = ref('login');
