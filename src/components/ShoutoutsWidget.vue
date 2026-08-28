@@ -80,14 +80,17 @@
 
           <div class="space-y-1">
             <label class="block text-xs font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Recognize</label>
-            <div class="border border-zinc-200 dark:border-zinc-800 rounded max-h-36 overflow-y-auto">
+            <div class="border border-zinc-200 dark:border-zinc-800 rounded max-h-56 overflow-y-auto">
               <label
                 v-for="emp in directory"
                 :key="emp._id"
-                class="flex items-center gap-2 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer border-b border-zinc-100 dark:border-zinc-900 last:border-0"
+                class="flex items-start gap-2.5 px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer border-b border-zinc-100 dark:border-zinc-900 last:border-0"
               >
-                <input type="checkbox" :value="emp._id" v-model="form.toEmployeeIds" class="accent-lime-500" />
-                {{ emp.name }} <span class="text-zinc-500 text-xs">({{ emp.role }} &bull; {{ emp.departmentId?.name || 'No Department' }})</span>
+                <input type="checkbox" :value="emp._id" v-model="form.toEmployeeIds" class="accent-lime-500 mt-1 shrink-0" />
+                <span class="min-w-0 leading-tight">
+                  <span class="block truncate">{{ emp.name }}</span>
+                  <span class="block truncate text-zinc-500 text-xs mt-0.5">{{ emp.role }} &bull; {{ emp.departmentId?.name || 'No Department' }}</span>
+                </span>
               </label>
               <p v-if="!directory || directory.length === 0" class="px-3 py-2 text-xs text-zinc-500">No colleagues available.</p>
             </div>
