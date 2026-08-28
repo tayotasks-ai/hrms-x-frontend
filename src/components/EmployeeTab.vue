@@ -126,7 +126,7 @@
               <td class="py-4 px-6 font-semibold text-zinc-800 dark:text-zinc-200">{{ employee.name }}</td>
               <td class="py-4 px-6 text-zinc-600 dark:text-zinc-400 font-mono text-xs">{{ employee.email }}</td>
               <td class="py-4 px-6 text-zinc-700 dark:text-zinc-300">
-                <span class="bg-zinc-50 dark:bg-zinc-900 px-2 py-0.5 rounded text-xs border border-zinc-200 dark:border-zinc-800">
+                <span class="inline-block max-w-full bg-zinc-50 dark:bg-zinc-900 px-2 py-0.5 rounded text-xs border border-zinc-200 dark:border-zinc-800">
                   {{ employee.departmentId?.name || employee.department || 'Unassigned' }}
                 </span>
               </td>
