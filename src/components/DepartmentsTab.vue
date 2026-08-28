@@ -109,10 +109,10 @@
         <p class="text-xs">No departments configured yet.</p>
       </div>
 
-      <div v-else class="space-y-4">
+      <div v-else class="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
         <!-- Recursively render root departments -->
-        <DepartmentNode 
-          v-for="dept in rootDepartments" 
+        <DepartmentNode
+          v-for="dept in rootDepartments"
           :key="dept._id"
           :department="dept"
           :allDepartments="departments"
