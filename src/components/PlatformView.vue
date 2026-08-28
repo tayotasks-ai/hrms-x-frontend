@@ -62,6 +62,9 @@
                   :class="t.planTier === 'Paid' ? 'bg-emerald-950 text-emerald-400 border border-emerald-900' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'">
                   {{ t.planTier }}
                 </span>
+                <span v-if="t.isTestAccount" class="text-[10px] px-1.5 py-0.5 rounded font-mono uppercase bg-sky-950 text-sky-400 border border-sky-900">
+                  Test
+                </span>
               </div>
               <div class="text-xs text-zinc-500 font-mono mt-1">
                 {{ t.employeeCount }} employees · ₦{{ t.walletBalance.toLocaleString() }} wallet
@@ -75,11 +78,19 @@
                 <span class="text-zinc-500">({{ t.onboarding.percent }}% onboarded)</span>
               </div>
             </div>
-            <button @click="openConfirmModal(t)" :disabled="impersonatingId === t._id"
-              class="shrink-0 flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-200 font-medium px-4 py-2 rounded text-xs font-mono disabled:opacity-50 transition">
-              <LogIn class="w-3.5 h-3.5" />
-              {{ impersonatingId === t._id ? 'Opening…' : 'Impersonate' }}
-            </button>
+            <div class="shrink-0 flex items-center gap-2">
+              <button @click="toggleTestAccount(t)" :disabled="togglingId === t._id"
+                class="flex items-center justify-center gap-2 border rounded text-xs font-mono px-3 py-2 disabled:opacity-50 transition"
+                :class="t.isTestAccount ? 'border-sky-800 text-sky-400 hover:border-sky-600' : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'">
+                <FlaskConical class="w-3.5 h-3.5" />
+                {{ togglingId === t._id ? 'Saving…' : (t.isTestAccount ? 'Unflag test' : 'Flag as test') }}
+              </button>
+              <button @click="openConfirmModal(t)" :disabled="impersonatingId === t._id"
+                class="flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-200 font-medium px-4 py-2 rounded text-xs font-mono disabled:opacity-50 transition">
+                <LogIn class="w-3.5 h-3.5" />
+                {{ impersonatingId === t._id ? 'Opening…' : 'Impersonate' }}
+              </button>
+            </div>
           </div>
 
           <p v-if="!loading && !tenantRows.length" class="text-zinc-600 text-sm font-mono text-center py-10">No organisations yet.</p>
@@ -122,14 +133,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ShieldAlert, RefreshCw, LogOut, LogIn } from 'lucide-vue-next';
+import { ShieldAlert, RefreshCw, LogOut, LogIn, FlaskConical } from 'lucide-vue-next';
 import { useApi } from '../composables/useApi';
 
 const emit = defineEmits(['exit', 'impersonated']);
 
 const {
   platformAdmin, restorePlatformAdmin, platformLogin, platformLogout,
-  getPlatformTenants, impersonateTenant, setAuthUser, setActiveTenant,
+  getPlatformTenants, impersonateTenant, setTenantTestAccount, setAuthUser, setActiveTenant,
 } = useApi();
 
 const email = ref('');
@@ -141,6 +152,7 @@ const tenantRows = ref([]);
 const loading = ref(false);
 const loadError = ref('');
 const impersonatingId = ref(null);
+const togglingId = ref(null);
 const confirmTenant = ref(null);
 const impersonateReason = ref('');
 
@@ -198,6 +210,18 @@ const confirmImpersonate = async () => {
     closeConfirmModal();
   } finally {
     impersonatingId.value = null;
+  }
+};
+
+const toggleTestAccount = async (tenant) => {
+  togglingId.value = tenant._id;
+  try {
+    const result = await setTenantTestAccount(tenant._id, !tenant.isTestAccount);
+    tenant.isTestAccount = result.isTestAccount;
+  } catch (err) {
+    loadError.value = err.response?.data?.message || 'Failed to update test-account flag.';
+  } finally {
+    togglingId.value = null;
   }
 };
 

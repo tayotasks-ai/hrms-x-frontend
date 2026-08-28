@@ -102,6 +102,7 @@ export function useApi() {
   // ({ _id, name, email, role, tenant, token }) so the caller can feed it
   // straight into setAuthUser/setActiveTenant, exactly like a real login.
   const impersonateTenant = (tenantId, reason) => call(async () => (await platformApi.post(`/platform/tenants/${tenantId}/impersonate`, { reason })).data.data);
+  const setTenantTestAccount = (tenantId, isTestAccount) => call(async () => (await platformApi.patch(`/platform/tenants/${tenantId}/test-account`, { isTestAccount })).data.data);
 
   const checkHealth = async () => {
     try {
@@ -377,7 +378,7 @@ export function useApi() {
     registerTenant, loginUser, verifyLoginOtp, changePassword, forgotPassword, resetPasswordRequest, setTwoFactor,
     // Platform (root) admin
     platformAdmin, restorePlatformAdmin, platformLogin, platformLogout,
-    getPlatformTenants, getPlatformTenantDetail, impersonateTenant,
+    getPlatformTenants, getPlatformTenantDetail, impersonateTenant, setTenantTestAccount,
     // Modules
     getDashboardStats,
     getShoutouts, createShoutout, reactToShoutout,

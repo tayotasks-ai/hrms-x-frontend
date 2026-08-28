@@ -3,7 +3,7 @@
     <div class="w-full space-y-6 overflow-y-auto pr-2 pb-20">
     <!-- Freemium plan banner -->
     <div
-      v-if="plan && plan.tier === 'Free'"
+      v-if="plan && plan.tier === 'Free' && !plan.isTestAccount"
       class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 rounded-lg border"
       :class="plan.employeeCount >= plan.freeEmployeeLimit
         ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900'
