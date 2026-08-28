@@ -21,32 +21,36 @@
         </button>
         <button
           @click="exportPayrollCsv"
-          class="flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
+          title="Export CSV"
+          aria-label="Export CSV"
+          class="flex items-center justify-center w-9 h-9 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
         >
           <Download class="w-4 h-4" />
-          <span>Export CSV</span>
         </button>
         <button
           @click="openApprovalsModal"
-          class="relative flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
+          title="Payroll Approvals"
+          aria-label="Payroll Approvals"
+          class="relative flex items-center justify-center w-9 h-9 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
         >
           <ShieldCheck class="w-4 h-4" />
-          <span>Payroll Approvals</span>
           <span v-if="pendingApprovalCount > 0" class="absolute -top-1.5 -right-1.5 bg-amber-500 text-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{{ pendingApprovalCount }}</span>
         </button>
         <button
           @click="showRemittanceModal = true"
-          class="flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
+          title="Remittance Reports"
+          aria-label="Remittance Reports"
+          class="flex items-center justify-center w-9 h-9 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
         >
           <FileSpreadsheet class="w-4 h-4" />
-          <span>Remittance Reports</span>
         </button>
         <button
           @click="openBulkGenerateModal"
-          class="flex items-center justify-center gap-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold px-4 py-2 rounded text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
+          title="Generate for Period"
+          aria-label="Generate for Period"
+          class="flex items-center justify-center w-9 h-9 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition cursor-pointer"
         >
           <Users class="w-4 h-4" />
-          <span>Generate for Period</span>
         </button>
         <button
           @click="showGenerateModal = true"
