@@ -365,7 +365,23 @@ const { start: startActivityTracker, stop: stopActivityTracker } = useActivityTr
 // Reached only by typing/bookmarking #platform directly — deliberately no
 // visible link from the public landing page. See PlatformView.vue.
 const isPlatformRoute = ref(window.location.hash === '#platform');
-const showLanding   = ref(true);
+
+// Decide synchronously, before first paint, whether a stored session already
+// exists — previously showLanding defaulted to true and only flipped to
+// false at the very end of onMounted (after awaiting checkHealth() then
+// fetchTenants()), so every hard refresh briefly rendered the Landing Page
+// first, even mid-session on an arbitrary tab. Checking localStorage here
+// is instant and needs no network round trip, so a returning user goes
+// straight to the loading dashboard shell instead of flashing to Landing.
+const hasStoredSession = () => {
+  try {
+    const token = JSON.parse(localStorage.getItem('hrms_auth_user') || 'null')?.token;
+    return !!(token && localStorage.getItem('hrms_tenant_id'));
+  } catch {
+    return false;
+  }
+};
+const showLanding   = ref(!hasStoredSession());
 const showAuthModal = ref(false);
 const activeTab     = ref('dashboard');
 const isRefreshing  = ref(false);
@@ -627,8 +643,9 @@ onMounted(async () => {
   }
 
   restoreAuth();
-  await checkHealth();
-  await fetchTenants();
+  // Independent requests — no reason to serialize them, and showLanding no
+  // longer waits on either (see hasStoredSession() above).
+  await Promise.all([checkHealth(), fetchTenants()]);
 
   // Restore active tab from URL hash on first load (supports refresh & deep links)
   const hashTab = window.location.hash.slice(1);
@@ -640,8 +657,16 @@ onMounted(async () => {
   window.addEventListener('popstate', handlePopState);
 
   const handlingResetLink = resetToken && resetEmail;
-  if (!handlingResetLink && localStorage.getItem('hrms_tenant_id') && activeTenant.value && authUser.value?.token) {
-    showLanding.value = false;
+  if (!handlingResetLink) {
+    if (localStorage.getItem('hrms_tenant_id') && activeTenant.value && authUser.value?.token) {
+      showLanding.value = false;
+    } else {
+      // The optimistic hasStoredSession() check passed, but the cached
+      // tenant ID didn't resolve to a real tenant (e.g. deleted, or stale
+      // localStorage) — fall back to Landing instead of leaving a
+      // half-loaded dashboard with no active tenant.
+      showLanding.value = true;
+    }
   }
 });
 </script>
