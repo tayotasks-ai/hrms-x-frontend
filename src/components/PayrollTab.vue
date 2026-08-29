@@ -205,6 +205,15 @@
                     <span>{{ resettingIds.includes(slip._id) ? 'Checking…' : 'Reset' }}</span>
                   </button>
                   <button
+                    v-if="authUser?.role !== 'Employee' && paymentStatus(slip) === 'Pending_OTP'"
+                    @click="forceResetPayment(slip)"
+                    :disabled="resettingIds.includes(slip._id)"
+                    title="Skip the Paystack check and reset anyway — risk of double payment if the transfer later completes"
+                    class="text-[10px] text-red-500 hover:text-red-600 dark:text-red-400 underline decoration-dotted underline-offset-2 transition disabled:opacity-50 cursor-pointer"
+                  >
+                    Force
+                  </button>
+                  <button
                     v-else-if="authUser?.role !== 'Employee' && isPayable(slip)"
                     @click="payNow(slip)"
                     :disabled="payingIds.includes(slip._id)"
@@ -706,8 +715,9 @@
     >
       <div class="w-full max-w-sm bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-2xl overflow-hidden">
         <div class="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
-          <Banknote class="w-4 h-4 text-lime-600 dark:text-lime-400" />
-          <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Confirm Payment</h3>
+          <AlertTriangle v-if="confirmState.danger" class="w-4 h-4 text-red-500" />
+          <Banknote v-else class="w-4 h-4 text-lime-600 dark:text-lime-400" />
+          <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">{{ confirmState.title }}</h3>
         </div>
         <div class="p-6 space-y-2 text-sm">
           <p v-for="(line, i) in confirmState.lines" :key="i" :class="i === 0 ? 'text-zinc-800 dark:text-zinc-200 font-semibold' : 'text-zinc-600 dark:text-zinc-400 font-mono text-xs'">
@@ -718,8 +728,12 @@
           <button @click="closeConfirm" class="px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded text-sm hover:bg-zinc-855 transition cursor-pointer">
             Cancel
           </button>
-          <button @click="confirmProceed" class="px-4 py-2 bg-lime-500 text-black font-semibold rounded text-sm hover:bg-lime-600 dark:bg-lime-400 active:scale-[0.98] transition cursor-pointer">
-            Confirm
+          <button
+            @click="confirmProceed"
+            :class="confirmState.danger ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-lime-500 hover:bg-lime-600 dark:bg-lime-400 text-black'"
+            class="px-4 py-2 font-semibold rounded text-sm active:scale-[0.98] transition cursor-pointer"
+          >
+            {{ confirmState.confirmLabel }}
           </button>
         </div>
       </div>
@@ -730,7 +744,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Eye, X, Receipt, Download, Banknote, ShieldCheck, FileSpreadsheet, Users, RotateCcw } from 'lucide-vue-next';
+import { Eye, X, Receipt, Download, Banknote, ShieldCheck, FileSpreadsheet, Users, RotateCcw, AlertTriangle } from 'lucide-vue-next';
 import { estimatePayroll } from '../utils/payrollEstimate';
 import { toCsv, downloadCsv } from '../utils/csv';
 
@@ -806,8 +820,16 @@ const selectedSlip = ref(null);
 const downloadingPdf = ref(false);
 
 // ── Confirm modal (replaces window.confirm for Pay Now / Pay Selected) ──────
-const confirmState = ref(null); // { lines: string[], onConfirm: () => void }
-const openConfirm = (lines, onConfirm) => { confirmState.value = { lines, onConfirm }; };
+const confirmState = ref(null); // { lines: string[], onConfirm: () => void, danger, title, confirmLabel }
+const openConfirm = (lines, onConfirm, options = {}) => {
+  confirmState.value = {
+    lines,
+    onConfirm,
+    danger: !!options.danger,
+    title: options.title || 'Confirm Payment',
+    confirmLabel: options.confirmLabel || 'Confirm',
+  };
+};
 const closeConfirm = () => { confirmState.value = null; };
 const confirmProceed = () => {
   const cb = confirmState.value?.onConfirm;
@@ -972,12 +994,12 @@ const doPayNow = async (slip) => {
 // before touching anything, so this either frees the payslip up to pay
 // again, syncs it to Paid if it actually went through, or tells you it's
 // still genuinely live and can't be reset yet.
-const resetPayment = async (slip) => {
+const doResetPayment = async (slip, force) => {
   paymentError.value = null;
   paymentInfo.value = null;
   resettingIds.value = [...resettingIds.value, slip._id];
   try {
-    const res = await resetStuckPayment(slip._id);
+    const res = await resetStuckPayment(slip._id, force);
     paymentInfo.value = res.message;
     emit('refresh');
     loadWalletBalance();
@@ -986,6 +1008,24 @@ const resetPayment = async (slip) => {
   } finally {
     resettingIds.value = resettingIds.value.filter(id => id !== slip._id);
   }
+};
+
+const resetPayment = (slip) => doResetPayment(slip, false);
+
+// Force path: skips the "is Paystack still live" check server-side too.
+// Gated behind the shared confirm modal with an explicit risk warning —
+// this can genuinely result in the employee being paid AND the wallet
+// refunded as if they weren't, which is why it isn't the default action.
+const forceResetPayment = (slip) => {
+  openConfirm(
+    [
+      `Force reset ${slip.employeeId?.name || 'this'}'s payment?`,
+      `Paystack still reports this transfer as live — if it completes anyway, the employee could be paid while the wallet is refunded as if they weren't. Paying this payslip again afterward could pay them twice.`,
+      'Only do this if you are sure the transfer will never go through (e.g. the OTP genuinely cannot be entered by anyone).',
+    ],
+    () => doResetPayment(slip, true),
+    { danger: true, title: 'Force Reset — Risk of Double Payment', confirmLabel: 'Force Reset Anyway' }
+  );
 };
 
 const payBatchNow = () => {

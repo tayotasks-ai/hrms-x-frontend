@@ -206,7 +206,7 @@ export function useApi() {
   const payPayslip          = (id) => call(async () => (await api.post(`/payslips/${id}/pay`)).data);
   const payPayslipBatch     = (payslipIds) => call(async () => (await api.post('/payslips/pay-batch', { payslipIds })).data);
   const finalizePayslipPayment = (id, otp) => call(async () => (await api.post(`/payslips/${id}/pay/finalize`, { otp })).data);
-  const resetStuckPayment      = (id) => call(async () => (await api.post(`/payslips/${id}/reset-payment`)).data);
+  const resetStuckPayment      = (id, force) => call(async () => (await api.post(`/payslips/${id}/reset-payment`, { force: !!force })).data);
 
   // ── Tenant Plan (freemium) ─────────────────────────────────────────────────
   const getTenantPlan    = () => call(async () => (await api.get('/tenant/plan')).data.data);
