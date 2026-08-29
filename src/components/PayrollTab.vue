@@ -195,6 +195,16 @@
                     <span>Enter OTP</span>
                   </button>
                   <button
+                    v-if="authUser?.role !== 'Employee' && paymentStatus(slip) === 'Pending_OTP'"
+                    @click="resetPayment(slip)"
+                    :disabled="resettingIds.includes(slip._id)"
+                    title="Ask Paystack whether this transfer is really still pending, and free it up to pay again if it isn't"
+                    class="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2.5 py-1.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs transition active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <RotateCcw class="w-3.5 h-3.5" />
+                    <span>{{ resettingIds.includes(slip._id) ? 'Checking…' : 'Reset' }}</span>
+                  </button>
+                  <button
                     v-else-if="authUser?.role !== 'Employee' && isPayable(slip)"
                     @click="payNow(slip)"
                     :disabled="payingIds.includes(slip._id)"
@@ -720,7 +730,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Eye, X, Receipt, Download, Banknote, ShieldCheck, FileSpreadsheet, Users } from 'lucide-vue-next';
+import { Eye, X, Receipt, Download, Banknote, ShieldCheck, FileSpreadsheet, Users, RotateCcw } from 'lucide-vue-next';
 import { estimatePayroll } from '../utils/payrollEstimate';
 import { toCsv, downloadCsv } from '../utils/csv';
 
@@ -746,7 +756,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh']);
 
 const {
-  createPayslip, bulkGeneratePayslips, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment,
+  createPayslip, bulkGeneratePayslips, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment, resetStuckPayment,
   getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval, getWallet,
 } = useApi();
 
@@ -808,6 +818,7 @@ const confirmProceed = () => {
 // ── Payroll disbursement (Paystack) ──────────────────────────────────────────
 const selectedIds = ref([]);
 const payingIds = ref([]);
+const resettingIds = ref([]);
 const batchPaying = ref(false);
 const paymentError = ref(null);
 const otpModalPayslipId = ref(null);
@@ -951,6 +962,29 @@ const doPayNow = async (slip) => {
     paymentError.value = err.response?.data?.message || err.message || 'Payment failed.';
   } finally {
     payingIds.value = payingIds.value.filter(id => id !== slip._id);
+  }
+};
+
+// Unsticks a payslip stuck on "Awaiting OTP" — see backend
+// payslipPaymentController.js resetStuckPayment for why this can happen
+// (the OTP goes to the platform's own Paystack account, not the tenant)
+// and why it's safe: the backend checks Paystack's real transfer status
+// before touching anything, so this either frees the payslip up to pay
+// again, syncs it to Paid if it actually went through, or tells you it's
+// still genuinely live and can't be reset yet.
+const resetPayment = async (slip) => {
+  paymentError.value = null;
+  paymentInfo.value = null;
+  resettingIds.value = [...resettingIds.value, slip._id];
+  try {
+    const res = await resetStuckPayment(slip._id);
+    paymentInfo.value = res.message;
+    emit('refresh');
+    loadWalletBalance();
+  } catch (err) {
+    paymentError.value = err.response?.data?.message || err.message || 'Could not reset this payment.';
+  } finally {
+    resettingIds.value = resettingIds.value.filter(id => id !== slip._id);
   }
 };
 
