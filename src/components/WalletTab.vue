@@ -1,5 +1,6 @@
 <template>
-  <div class="max-w-2xl space-y-6">
+  <div class="max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+  <div class="lg:col-span-2 space-y-6">
     <div class="bg-white dark:bg-zinc-950 p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg">
       <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Payroll Wallet</h3>
       <p class="text-xs text-zinc-500 mt-0.5">Fund this wallet by transferring into your dedicated account below — every salary payment is paid out of it. Each transfer is debited at net pay plus Paystack's own transfer fee plus a flat ₦500 platform fee.</p>
@@ -148,27 +149,29 @@
         </button>
       </div>
     </div>
+  </div>
 
-    <!-- Transaction history -->
-    <div class="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6">
-      <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm mb-3">Recent Activity</h3>
-      <div v-if="!transactions.length" class="text-xs text-zinc-400 text-center py-6">No wallet activity yet.</div>
-      <div v-else class="space-y-2">
-        <div
-          v-for="t in transactions"
-          :key="t._id"
-          class="flex items-center justify-between text-xs border-b border-zinc-100 dark:border-zinc-900 pb-2 last:border-0 last:pb-0"
-        >
-          <div>
-            <p class="font-semibold text-zinc-800 dark:text-zinc-200">{{ t.type === 'Funding' ? 'Wallet funded' : t.type === 'Refund' ? 'Refund' : (t.relatedPayslip?.employeeId?.name || 'Payroll debit') }}</p>
-            <p class="text-zinc-400 mt-0.5">{{ formatDate(t.createdAt) }}</p>
-          </div>
-          <span :class="t.type === 'Funding' || t.type === 'Refund' ? 'text-lime-600 dark:text-lime-400' : 'text-zinc-700 dark:text-zinc-300'" class="font-mono font-semibold">
-            {{ t.type === 'Funding' || t.type === 'Refund' ? '+' : '-' }}&#8358;{{ t.amount.toLocaleString() }}
-          </span>
+  <!-- Transaction history — right column, sticky so it stays in view while
+       the left column (schedule/approval settings) scrolls. -->
+  <div class="lg:sticky lg:top-6 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6">
+    <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm mb-3">Recent Activity</h3>
+    <div v-if="!transactions.length" class="text-xs text-zinc-400 text-center py-6">No wallet activity yet.</div>
+    <div v-else class="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
+      <div
+        v-for="t in transactions"
+        :key="t._id"
+        class="flex items-center justify-between text-xs border-b border-zinc-100 dark:border-zinc-900 pb-2 last:border-0 last:pb-0"
+      >
+        <div>
+          <p class="font-semibold text-zinc-800 dark:text-zinc-200">{{ t.type === 'Funding' ? 'Wallet funded' : t.type === 'Refund' ? 'Refund' : (t.relatedPayslip?.employeeId?.name || 'Payroll debit') }}</p>
+          <p class="text-zinc-400 mt-0.5">{{ formatDate(t.createdAt) }}</p>
         </div>
+        <span :class="t.type === 'Funding' || t.type === 'Refund' ? 'text-lime-600 dark:text-lime-400' : 'text-zinc-700 dark:text-zinc-300'" class="font-mono font-semibold shrink-0 ml-2">
+          {{ t.type === 'Funding' || t.type === 'Refund' ? '+' : '-' }}&#8358;{{ t.amount.toLocaleString() }}
+        </span>
       </div>
     </div>
+  </div>
   </div>
 </template>
 
