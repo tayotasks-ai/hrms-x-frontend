@@ -9,6 +9,7 @@
           Payroll wallet: <span class="font-semibold text-zinc-800 dark:text-zinc-200">&#8358;{{ walletBalance.toLocaleString() }}</span>
           <span v-if="isTestAccount" class="ml-1.5 text-sky-600 dark:text-sky-400">(test account — no payroll fees)</span>
           <span v-if="pendingSettlement > 0" class="ml-1.5 text-amber-600 dark:text-amber-400">(&#8358;{{ pendingSettlement.toLocaleString() }} still settling — see Wallet tab)</span>
+          <span v-if="fundingShortfall > 0" class="ml-1.5 text-amber-600 dark:text-amber-400">(payday {{ daysUntilPayday === 0 ? 'today' : daysUntilPayday === 1 ? 'tomorrow' : `in ${daysUntilPayday} days` }} — short &#8358;{{ fundingShortfall.toLocaleString() }}, fund now)</span>
         </p>
       </div>
       <div v-if="authUser?.role !== 'Employee'" class="w-full sm:w-auto flex items-center gap-2">
@@ -796,6 +797,11 @@ const isTestAccount = ref(false);
 // null when the live check couldn't run; a positive number is what's not
 // yet spendable (walletBalance minus confirmedAvailable).
 const pendingSettlement = ref(0);
+// Mirrors WalletTab.vue's fundingWarning — a heads-up that payday is close
+// (within a week) and confirmed-available funds won't cover this period's
+// still-unpaid payslips yet. See walletController.js getWallet.
+const daysUntilPayday = ref(null);
+const fundingShortfall = ref(0);
 const loadWalletBalance = async () => {
   try {
     const wallet = await getWallet();
@@ -804,6 +810,10 @@ const loadWalletBalance = async () => {
     pendingSettlement.value = (wallet.confirmedAvailable === null || wallet.confirmedAvailable === undefined)
       ? 0
       : Math.max(0, (wallet.balance || 0) - wallet.confirmedAvailable);
+    daysUntilPayday.value = wallet.daysUntilPayday ?? null;
+    fundingShortfall.value = (daysUntilPayday.value !== null && daysUntilPayday.value >= 0 && daysUntilPayday.value <= 7)
+      ? (wallet.fundingShortfall || 0)
+      : 0;
   } catch { /* non-fatal — the balance chip just won't show */ }
 };
 

@@ -5,6 +5,13 @@
       <p class="text-xs text-zinc-500 mt-0.5">Fund this wallet by transferring into your dedicated account below — every salary payment is paid out of it. Each transfer is debited at net pay plus Paystack's own transfer fee plus a flat ₦500 platform fee.</p>
     </div>
 
+    <!-- Proactive funding warning: payday is close and confirmed-available
+         funds won't cover this period's outstanding payslips yet. -->
+    <div v-if="!loading && fundingWarning" class="p-4 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900 rounded-lg flex items-start gap-3">
+      <AlertTriangle class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+      <p class="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">{{ fundingWarning }}</p>
+    </div>
+
     <!-- Balance -->
     <div class="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6 space-y-1">
       <p class="text-xs font-mono text-zinc-500 uppercase tracking-wider">Wallet Balance</p>
@@ -110,6 +117,10 @@
         <div>
           <p class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Auto-run active</p>
           <p v-if="schedule.lastRunAt" class="text-[11px] text-zinc-500 mt-0.5">Last ran {{ formatDate(schedule.lastRunAt) }}</p>
+          <p v-if="schedule.active && wallet?.nextPayday" class="text-[11px] text-zinc-500 mt-0.5">
+            Next payday: {{ formatShortDate(wallet.nextPayday) }}{{ wallet.daysUntilPayday === 0 ? ' (today)' : wallet.daysUntilPayday === 1 ? ' (tomorrow)' : ` (in ${wallet.daysUntilPayday} days)` }}
+            — fund a few business days ahead to allow for settlement.
+          </p>
         </div>
         <button
           @click="toggleScheduleActive"
@@ -164,7 +175,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Landmark, Link as LinkIcon, Copy } from 'lucide-vue-next';
+import { Landmark, Link as LinkIcon, Copy, AlertTriangle } from 'lucide-vue-next';
 
 const { getWallet, setupWallet, setWalletDualApproval, setPayrollSchedule, getWalletTransactions } = useApi();
 
@@ -284,6 +295,22 @@ const settlementNote = computed(() => {
     fullyAvailable: false,
     text: `₦${pending.toLocaleString()} is still settling with Paystack and can't be paid out yet${dateText}.`,
   };
+});
+
+// Proactive heads-up, not just a reactive settlement note: fires when payday
+// is close (within a week — enough buffer to clear a weekend/holiday) and
+// what's confirmed-available won't cover this period's still-unpaid
+// payslips. Backed by wallet.fundingShortfall from walletController.js
+// getWallet, which only sums Unpaid/Failed payslips for the upcoming
+// period — so this stays silent until real payslips exist to fall short on.
+const fundingWarning = computed(() => {
+  const w = wallet.value;
+  if (!w || w.daysUntilPayday === null || w.daysUntilPayday === undefined) return null;
+  if (w.daysUntilPayday < 0 || w.daysUntilPayday > 7) return null;
+  if (!w.fundingShortfall || w.fundingShortfall <= 0) return null;
+
+  const when = w.daysUntilPayday === 0 ? 'today' : w.daysUntilPayday === 1 ? 'tomorrow' : `in ${w.daysUntilPayday} days`;
+  return `Payday is ${when} (${formatShortDate(w.nextPayday)}). This period needs about ₦${w.expectedPayrollTotal.toLocaleString()} but only ₦${((w.expectedPayrollTotal || 0) - w.fundingShortfall).toLocaleString()} is confirmed available — fund the shortfall of ₦${w.fundingShortfall.toLocaleString()} now, since deposits can take until the next business day (longer over a weekend or holiday).`;
 });
 
 onMounted(load);
