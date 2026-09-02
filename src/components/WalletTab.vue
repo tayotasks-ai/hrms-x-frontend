@@ -152,25 +152,39 @@
   </div>
 
   <!-- Transaction history — right column, sticky so it stays in view while
-       the left column (schedule/approval settings) scrolls. -->
-  <div class="lg:sticky lg:top-6 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6">
+       the left column (schedule/approval settings) scrolls. Grouped by day
+       and iconed by direction so a dense list stays scannable at a glance. -->
+  <div class="lg:sticky lg:top-6 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6 relative">
     <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm mb-3">Recent Activity</h3>
     <div v-if="!transactions.length" class="text-xs text-zinc-400 text-center py-6">No wallet activity yet.</div>
-    <div v-else class="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
-      <div
-        v-for="t in transactions"
-        :key="t._id"
-        class="flex items-center justify-between text-xs border-b border-zinc-100 dark:border-zinc-900 pb-2 last:border-0 last:pb-0"
-      >
-        <div>
-          <p class="font-semibold text-zinc-800 dark:text-zinc-200">{{ t.type === 'Funding' ? 'Wallet funded' : t.type === 'Refund' ? 'Refund' : (t.relatedPayslip?.employeeId?.name || 'Payroll debit') }}</p>
-          <p class="text-zinc-400 mt-0.5">{{ formatDate(t.createdAt) }}</p>
+    <div v-else class="thin-scroll max-h-[70vh] overflow-y-auto pr-1 -mr-1">
+      <div v-for="group in groupedTransactions" :key="group.label" class="mb-4 last:mb-0">
+        <p class="text-[10px] font-mono uppercase tracking-wider text-zinc-400 dark:text-zinc-600 mb-2 sticky -top-0.5 bg-white dark:bg-zinc-950 py-0.5">{{ group.label }}</p>
+        <div class="space-y-1">
+          <div
+            v-for="t in group.items"
+            :key="t._id"
+            class="flex items-center gap-3 text-xs py-2 border-b border-zinc-100 dark:border-zinc-900 last:border-0"
+          >
+            <div :class="[
+              t.type === 'Funding' || t.type === 'Refund' ? 'bg-lime-100 dark:bg-lime-950 text-lime-600 dark:text-lime-400' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500',
+              'w-7 h-7 rounded-full flex items-center justify-center shrink-0'
+            ]">
+              <ArrowDownLeft v-if="t.type === 'Funding' || t.type === 'Refund'" class="w-3.5 h-3.5" />
+              <ArrowUpRight v-else class="w-3.5 h-3.5" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-zinc-800 dark:text-zinc-200 truncate">{{ t.type === 'Funding' ? 'Wallet funded' : t.type === 'Refund' ? 'Refund' : (t.relatedPayslip?.employeeId?.name || 'Payroll debit') }}</p>
+              <p class="text-zinc-400 mt-0.5">{{ formatTime(t.createdAt) }}</p>
+            </div>
+            <span :class="t.type === 'Funding' || t.type === 'Refund' ? 'text-lime-600 dark:text-lime-400' : 'text-zinc-700 dark:text-zinc-300'" class="font-mono font-semibold shrink-0">
+              {{ t.type === 'Funding' || t.type === 'Refund' ? '+' : '-' }}&#8358;{{ t.amount.toLocaleString() }}
+            </span>
+          </div>
         </div>
-        <span :class="t.type === 'Funding' || t.type === 'Refund' ? 'text-lime-600 dark:text-lime-400' : 'text-zinc-700 dark:text-zinc-300'" class="font-mono font-semibold shrink-0 ml-2">
-          {{ t.type === 'Funding' || t.type === 'Refund' ? '+' : '-' }}&#8358;{{ t.amount.toLocaleString() }}
-        </span>
       </div>
     </div>
+    <div v-if="transactions.length > 8" class="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-zinc-950 to-transparent rounded-b-lg"></div>
   </div>
   </div>
 </template>
@@ -178,7 +192,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
-import { Landmark, Link as LinkIcon, Copy, AlertTriangle } from 'lucide-vue-next';
+import { Landmark, Link as LinkIcon, Copy, AlertTriangle, ArrowDownLeft, ArrowUpRight } from 'lucide-vue-next';
 
 const { getWallet, setupWallet, setWalletDualApproval, setPayrollSchedule, getWalletTransactions } = useApi();
 
@@ -276,6 +290,30 @@ const toggleDualApproval = async () => {
 
 const formatDate = (d) => d ? new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
 const formatShortDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const formatTime = (d) => d ? new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+
+// Buckets Recent Activity into Today / Yesterday / [date] headers, in the
+// order transactions already arrive (newest first from getWalletTransactions)
+// — a long flat list of same-looking rows was hard to scan, this gives the
+// eye a place to land.
+const groupedTransactions = computed(() => {
+  const groups = [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+
+  for (const t of transactions.value) {
+    const d = new Date(t.createdAt);
+    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const label = day.getTime() === today.getTime() ? 'Today'
+      : day.getTime() === yesterday.getTime() ? 'Yesterday'
+      : formatShortDate(t.createdAt);
+
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.items.push(t);
+    else groups.push({ label, items: [t] });
+  }
+  return groups;
+});
 
 // Wallet Balance above is our own ledger — money that's landed in the
 // dedicated account and been recorded, but not necessarily payable out yet.
@@ -318,3 +356,23 @@ const fundingWarning = computed(() => {
 
 onMounted(load);
 </script>
+
+<style scoped>
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(161, 161, 170, 0.4) transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(161, 161, 170, 0.4);
+  border-radius: 9999px;
+}
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(161, 161, 170, 0.6);
+}
+</style>
