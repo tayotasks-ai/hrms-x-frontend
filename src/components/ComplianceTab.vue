@@ -222,9 +222,9 @@
           <button
             @click="toggleScreenshots"
             :disabled="savingMonitoringSettings"
-            :class="[monitoringSettings.screenshotsEnabled ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'shrink-0 relative w-11 h-6 rounded-full transition disabled:opacity-50 cursor-pointer']"
+            :class="[monitoringSettings.screenshotsEnabled ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'shrink-0 relative w-11 h-6 rounded-full flex items-center transition-colors disabled:opacity-50 cursor-pointer']"
           >
-            <span :class="[monitoringSettings.screenshotsEnabled ? 'translate-x-5' : 'translate-x-0.5', 'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform']"></span>
+            <span :class="[monitoringSettings.screenshotsEnabled ? 'ml-5' : 'ml-0.5', 'w-5 h-5 bg-white rounded-full shadow transition-all']"></span>
           </button>
         </div>
 

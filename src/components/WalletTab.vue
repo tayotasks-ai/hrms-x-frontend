@@ -126,9 +126,9 @@
         <button
           @click="toggleScheduleActive"
           :disabled="savingSchedule"
-          :class="[schedule.active ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full transition shrink-0 disabled:opacity-50 cursor-pointer']"
+          :class="[schedule.active ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full flex items-center transition-colors shrink-0 disabled:opacity-50 cursor-pointer']"
         >
-          <span :class="[schedule.active ? 'translate-x-4' : 'translate-x-0.5', 'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform']"></span>
+          <span :class="[schedule.active ? 'ml-4' : 'ml-0.5', 'w-5 h-5 bg-white rounded-full shadow transition-all']"></span>
         </button>
       </div>
     </div>
@@ -143,9 +143,9 @@
         <button
           @click="toggleDualApproval"
           :disabled="savingDualApproval"
-          :class="[wallet?.requireDualApproval ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full transition shrink-0 disabled:opacity-50 cursor-pointer']"
+          :class="[wallet?.requireDualApproval ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full flex items-center transition-colors shrink-0 disabled:opacity-50 cursor-pointer']"
         >
-          <span :class="[wallet?.requireDualApproval ? 'translate-x-4' : 'translate-x-0.5', 'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform']"></span>
+          <span :class="[wallet?.requireDualApproval ? 'ml-4' : 'ml-0.5', 'w-5 h-5 bg-white rounded-full shadow transition-all']"></span>
         </button>
       </div>
     </div>
@@ -164,9 +164,9 @@
         <button
           @click="toggleDeduction(d.key)"
           :disabled="savingDeductions"
-          :class="[deductions[d.key] ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full transition shrink-0 disabled:opacity-50 cursor-pointer']"
+          :class="[deductions[d.key] ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full flex items-center transition-colors shrink-0 disabled:opacity-50 cursor-pointer']"
         >
-          <span :class="[deductions[d.key] ? 'translate-x-4' : 'translate-x-0.5', 'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform']"></span>
+          <span :class="[deductions[d.key] ? 'ml-4' : 'ml-0.5', 'w-5 h-5 bg-white rounded-full shadow transition-all']"></span>
         </button>
       </div>
     </div>

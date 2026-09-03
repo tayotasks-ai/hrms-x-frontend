@@ -46,9 +46,9 @@
             <button
               @click="toggleTwoFactor"
               :disabled="savingTwoFactor"
-              :class="[twoFactorEnabled ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full transition shrink-0 disabled:opacity-50 cursor-pointer']"
+              :class="[twoFactorEnabled ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full flex items-center transition-colors shrink-0 disabled:opacity-50 cursor-pointer']"
             >
-              <span :class="[twoFactorEnabled ? 'translate-x-4' : 'translate-x-0.5', 'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform']"></span>
+              <span :class="[twoFactorEnabled ? 'ml-4' : 'ml-0.5', 'w-5 h-5 bg-white rounded-full shadow transition-all']"></span>
             </button>
           </div>
           <p v-if="twoFactorError" class="text-[10px] text-red-500">{{ twoFactorError }}</p>

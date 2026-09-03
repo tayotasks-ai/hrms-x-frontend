@@ -11,9 +11,9 @@
 
   <aside
     :class="[
-      mobileOpen ? 'translate-x-0' : '-translate-x-full',
-      'fixed inset-y-0 left-0 z-50 w-64 md:static md:translate-x-0 md:z-auto',
-      'border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col h-screen md:sticky md:top-0 transition-transform md:transition-colors duration-200 ease-in-out'
+      mobileOpen ? 'left-0' : '-left-64',
+      'fixed inset-y-0 z-50 w-64 md:static md:z-auto',
+      'border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col h-screen md:sticky md:top-0 transition-[left] md:transition-colors duration-200 ease-in-out'
     ]"
   >
     <!-- Brand -->
