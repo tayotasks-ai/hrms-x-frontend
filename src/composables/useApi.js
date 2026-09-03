@@ -219,6 +219,10 @@ export function useApi() {
   const setPayrollSchedule    = (d) => call(async () => (await api.put('/wallet/schedule', d)).data.data);
   const getWalletTransactions = () => call(async () => (await api.get('/wallet/transactions')).data.data);
 
+  // ── Statutory deduction toggles (PAYE / pension / NHF) ──────────────────────
+  const getDeductionSettings    = () => call(async () => (await api.get('/payslips/deduction-settings')).data.data);
+  const updateDeductionSettings = (d) => call(async () => (await api.put('/payslips/deduction-settings', d)).data.data);
+
   // ── Payroll Approvals (maker-checker) ─────────────────────────────────────
   const getPayrollApprovals     = (status) => call(async () => (await api.get('/payroll-approvals', { params: status ? { status } : {} })).data.data);
   const approvePayrollApproval  = (id) => call(async () => (await api.post(`/payroll-approvals/${id}/approve`)).data);
@@ -390,6 +394,7 @@ export function useApi() {
     getPayslips, createPayslip, bulkGeneratePayslips, downloadPayslipPdf, downloadRemittanceReport, payPayslip, payPayslipBatch, finalizePayslipPayment, resetStuckPayment,
     getTenantPlan, upgradeTenantPlan,
     getWallet, setupWallet, setWalletDualApproval, setPayrollSchedule, getWalletTransactions,
+    getDeductionSettings, updateDeductionSettings,
     getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval,
     getBanks, verifyBankAccount,
     getPerformanceCycles, createPerformanceCycle, updatePerformanceCycle,

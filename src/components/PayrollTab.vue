@@ -775,21 +775,16 @@ const {
   getPayrollApprovals, approvePayrollApproval, rejectPayrollApproval, getWallet,
 } = useApi();
 
-// Mirrors utils/paystack.js computeTransferFee on the backend — used only
-// to preview the fee breakdown in a confirm dialog before paying, since the
-// backend is the source of truth for what's actually charged. Estimated
-// as if stamp duty applies (the conservative default); the real charge may
-// be ₦50 less per transfer if the platform has stamp-duty exemption.
-const estimateFee = (netPay) => {
-  const paystackFee = netPay <= 5000 ? 10 : netPay <= 50000 ? 25 : 50;
-  const stampDuty = netPay >= 10000 ? 50 : 0;
-  const markup = 500;
-  return { paystackFee, stampDuty, markup, total: paystackFee + stampDuty + markup };
-};
+// Mirrors utils/paystack.js computeTransferFee on the backend — flat ₦250
+// per transfer, regardless of amount. Kept as a function (rather than just
+// referencing the constant inline) so callers read the same either way,
+// and so a future move back to tiered pricing only needs to change here.
+const FLAT_TRANSFER_FEE = 250;
+const estimateFee = () => ({ fee: FLAT_TRANSFER_FEE, total: FLAT_TRANSFER_FEE });
 
 const walletBalance = ref(null);
 // Test accounts (Tenant.isTestAccount, set from the platform dashboard) pay
-// no Paystack/stamp/platform fees on payroll transfers — see
+// no flat transfer fee on payroll transfers — see
 // payslipPaymentController.js payOnePayslip. Only net pay is debited.
 const isTestAccount = ref(false);
 // How much of walletBalance is still mid-settlement with Paystack and
@@ -960,18 +955,16 @@ const queueOtpIfNeeded = (requiresOtp, payslipId) => {
 };
 
 const payNow = (slip) => {
-  const fee = isTestAccount.value ? { paystackFee: 0, stampDuty: 0, markup: 0, total: 0 } : estimateFee(slip.netPay);
+  const fee = isTestAccount.value ? { fee: 0, total: 0 } : estimateFee();
   const lines = [
     `Pay ${slip.employeeId?.name || 'this employee'} ₦${slip.netPay.toLocaleString()} net pay?`,
   ];
   if (isTestAccount.value) {
-    lines.push('Test account — no Paystack, stamp duty, or platform fees apply.');
+    lines.push('Test account — no transfer fee applies.');
   } else {
-    lines.push(`+ ₦${fee.paystackFee} Paystack fee`);
-    if (fee.stampDuty) lines.push(`+ ₦${fee.stampDuty} stamp duty`);
-    lines.push(`+ ₦${fee.markup} platform fee`);
+    lines.push(`+ ₦${fee.fee} transfer fee`);
   }
-  lines.push(`= ₦${(slip.netPay + fee.total).toLocaleString()} debited from the payroll wallet${isTestAccount.value ? '' : ' (estimate)'}.`);
+  lines.push(`= ₦${(slip.netPay + fee.total).toLocaleString()} debited from the payroll wallet.`);
 
   openConfirm(lines, () => doPayNow(slip));
 };
@@ -1043,15 +1036,15 @@ const payBatchNow = () => {
 
   const selectedSlips = props.payslips.filter(s => selectedIds.value.includes(s._id));
   const netTotal = selectedSlips.reduce((sum, s) => sum + s.netPay, 0);
-  const feeTotal = isTestAccount.value ? 0 : selectedSlips.reduce((sum, s) => sum + estimateFee(s.netPay).total, 0);
+  const feeTotal = isTestAccount.value ? 0 : selectedSlips.length * estimateFee().total;
 
   const lines = [`Pay ${selectedSlips.length} selected payslip(s)?`];
   if (isTestAccount.value) {
-    lines.push(`₦${netTotal.toLocaleString()} net pay — test account, no Paystack/stamp/platform fees apply.`);
+    lines.push(`₦${netTotal.toLocaleString()} net pay — test account, no transfer fee applies.`);
     lines.push(`= ₦${netTotal.toLocaleString()} debited from the payroll wallet, paid in order.`);
   } else {
-    lines.push(`₦${netTotal.toLocaleString()} net pay + ₦${feeTotal.toLocaleString()} in Paystack/stamp/platform fees`);
-    lines.push(`= ₦${(netTotal + feeTotal).toLocaleString()} debited from the payroll wallet (estimate, paid in order — if the wallet runs short partway through, the rest are skipped and you'll be notified).`);
+    lines.push(`₦${netTotal.toLocaleString()} net pay + ₦${feeTotal.toLocaleString()} in transfer fees (₦${FLAT_TRANSFER_FEE} × ${selectedSlips.length})`);
+    lines.push(`= ₦${(netTotal + feeTotal).toLocaleString()} debited from the payroll wallet (paid in order — if the wallet runs short partway through, the rest are skipped and you'll be notified).`);
   }
 
   openConfirm(lines, doPayBatchNow);

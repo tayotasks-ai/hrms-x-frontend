@@ -3,7 +3,7 @@
   <div class="lg:col-span-2 space-y-6">
     <div class="bg-white dark:bg-zinc-950 p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg">
       <h3 class="font-display font-bold text-zinc-900 dark:text-zinc-50 text-sm">Payroll Wallet</h3>
-      <p class="text-xs text-zinc-500 mt-0.5">Fund this wallet by transferring into your dedicated account below — every salary payment is paid out of it. Each transfer is debited at net pay plus Paystack's own transfer fee plus a flat ₦500 platform fee.</p>
+      <p class="text-xs text-zinc-500 mt-0.5">Fund this wallet by transferring into your dedicated account below — every salary payment is paid out of it. Each transfer is debited at net pay plus a flat ₦250 fee, so fund enough to cover net pay for everyone you're paying plus ₦250 per payment.</p>
     </div>
 
     <!-- Proactive funding warning: payday is close and confirmed-available
@@ -149,6 +149,27 @@
         </button>
       </div>
     </div>
+
+    <!-- Statutory deductions -->
+    <div class="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-6 space-y-4">
+      <div>
+        <p class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Statutory deductions</p>
+        <p class="text-xs text-zinc-500 mt-1">On by default. Turning one off only affects payslips generated from now on — it won't change payslips already generated. Turning pension or NHF off also removes it as a pre-tax relief, so PAYE may rise slightly to reflect that.</p>
+      </div>
+      <div v-for="d in DEDUCTION_TOGGLES" :key="d.key" class="flex items-center justify-between gap-4 pt-3 border-t border-zinc-200 dark:border-zinc-800 first:pt-0 first:border-0">
+        <div>
+          <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ d.label }}</p>
+          <p class="text-[11px] text-zinc-500">{{ d.description }}</p>
+        </div>
+        <button
+          @click="toggleDeduction(d.key)"
+          :disabled="savingDeductions"
+          :class="[deductions[d.key] ? 'bg-lime-500' : 'bg-zinc-300 dark:bg-zinc-700', 'relative w-10 h-6 rounded-full transition shrink-0 disabled:opacity-50 cursor-pointer']"
+        >
+          <span :class="[deductions[d.key] ? 'translate-x-4' : 'translate-x-0.5', 'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform']"></span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Transaction history — right column, sticky so it stays in view while
@@ -194,10 +215,18 @@ import { ref, computed, onMounted } from 'vue';
 import { useApi } from '../composables/useApi';
 import { Landmark, Link as LinkIcon, Copy, AlertTriangle, ArrowDownLeft, ArrowUpRight } from 'lucide-vue-next';
 
-const { getWallet, setupWallet, setWalletDualApproval, setPayrollSchedule, getWalletTransactions } = useApi();
+const { getWallet, setupWallet, setWalletDualApproval, setPayrollSchedule, getWalletTransactions, getDeductionSettings, updateDeductionSettings } = useApi();
+
+const DEDUCTION_TOGGLES = [
+  { key: 'paye', label: 'PAYE (income tax)', description: 'Progressive tax per the Nigeria Tax Act 2025.' },
+  { key: 'pension', label: 'Pension', description: '8% employee contribution.' },
+  { key: 'nhf', label: 'NHF', description: '2.5% of basic salary.' },
+];
 
 const wallet = ref(null);
 const transactions = ref([]);
+const deductions = ref({ paye: true, pension: true, nhf: true });
+const savingDeductions = ref(false);
 const schedule = ref({ dayOfMonth: 25, useLastDayOfMonth: false, active: false, lastRunAt: null });
 const loading = ref(true);
 const busy = ref(false);
@@ -214,10 +243,24 @@ const load = async () => {
     wallet.value = await getWallet();
     schedule.value = { ...wallet.value.payrollSchedule };
     transactions.value = await getWalletTransactions();
+    deductions.value = await getDeductionSettings();
   } catch (err) {
     errorMsg.value = err.response?.data?.message || 'Could not load wallet.';
   } finally {
     loading.value = false;
+  }
+};
+
+const toggleDeduction = async (key) => {
+  const next = !deductions.value[key];
+  savingDeductions.value = true;
+  errorMsg.value = null;
+  try {
+    deductions.value = await updateDeductionSettings({ [key]: next });
+  } catch (err) {
+    errorMsg.value = err.response?.data?.message || 'Failed to update deduction settings.';
+  } finally {
+    savingDeductions.value = false;
   }
 };
 
